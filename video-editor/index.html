@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>動画自動編集ツール</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="page-header">
+  <div class="container">
+    <a class="back-link" href="../index.html">&larr; トップに戻る</a>
+    <h1>動画自動編集ツール</h1>
+    <p class="subtitle">すべての処理はこのブラウザの中だけで行われます。動画がサーバーに送信されることはありません。</p>
+  </div>
+</header>
+
+<main class="container">
+
+  <section class="step" id="step-upload">
+    <h2><span class="step-badge">1</span>動画をアップロード</h2>
+    <div class="dropzone" id="dropzone">
+      <p>ここに動画ファイルをドラッグ&ドロップ、またはクリックして選択</p>
+      <input type="file" id="file-input" accept="video/*">
+    </div>
+    <div class="preview-wrap">
+      <video id="preview-video" controls></video>
+      <div id="subtitle-overlay" class="subtitle-overlay"></div>
+    </div>
+    <p class="hint" id="upload-info"></p>
+  </section>
+
+  <section class="step" id="step-cut" data-disabled="true">
+    <h2><span class="step-badge">2</span>無音区間を自動カット</h2>
+    <div class="controls-grid">
+      <label>無音とみなす音量のしきい値
+        <input type="range" id="threshold-slider" min="-60" max="-20" step="1" value="-40">
+        <span id="threshold-value">-40 dB</span>
+      </label>
+      <label>この長さ以上の無音をカット
+        <input type="range" id="min-silence-slider" min="0.2" max="2" step="0.1" value="0.6">
+        <span id="min-silence-value">0.6 秒</span>
+      </label>
+      <label>カット時の余白(のりしろ)
+        <input type="range" id="padding-slider" min="0.05" max="0.5" step="0.05" value="0.15">
+        <span id="padding-value">0.15 秒</span>
+      </label>
+    </div>
+    <button id="analyze-btn" class="btn">無音区間を検出する</button>
+    <canvas id="waveform-canvas" height="80"></canvas>
+    <p class="hint" id="analyze-info"></p>
+    <button id="apply-cut-btn" class="btn primary" disabled>この内容でカットを適用する</button>
+    <div class="progress-wrap" id="cut-progress-wrap" hidden>
+      <div class="progress-bar"><div class="progress-fill" id="cut-progress-fill"></div></div>
+      <p id="cut-progress-text"></p>
+    </div>
+  </section>
+
+  <section class="step" id="step-subtitle" data-disabled="true">
+    <h2><span class="step-badge">3</span>文字起こし・字幕</h2>
+    <p class="hint">字幕はプレビューへの表示と .vtt ファイルのダウンロードに対応しています（動画ファイル自体への焼き込みは行いません。YouTubeなどにアップロードする際に字幕ファイルとして追加できます）。</p>
+    <button id="transcribe-btn" class="btn">文字起こしを実行する（初回はモデルの読み込みに時間がかかります）</button>
+    <div class="progress-wrap" id="model-progress-wrap" hidden>
+      <div class="progress-bar"><div class="progress-fill" id="model-progress-fill"></div></div>
+      <p id="model-progress-text"></p>
+    </div>
+    <div id="transcript-list" class="transcript-list"></div>
+    <label class="checkbox-line">
+      <input type="checkbox" id="show-subtitle-checkbox" checked>
+      プレビューに字幕を表示する
+    </label>
+    <button id="download-vtt-btn" class="btn" disabled>字幕ファイルをダウンロード（.vtt）</button>
+  </section>
+
+  <section class="step" id="step-audio" data-disabled="true">
+    <h2><span class="step-badge">4</span>効果音・BGM</h2>
+
+    <div class="audio-block">
+      <label class="checkbox-line">
+        <input type="checkbox" id="bgm-enable-checkbox">
+        BGMを追加する
+      </label>
+      <div class="audio-options" id="bgm-options" hidden>
+        <div class="radio-group" id="bgm-source-group">
+          <label><input type="radio" name="bgm-source" value="preset" checked> 用意されたBGMから選ぶ（著作権フリー）</label>
+          <label><input type="radio" name="bgm-source" value="upload"> 自分の音楽ファイルをアップロードする</label>
+        </div>
+        <div id="bgm-preset-wrap">
+          <select id="bgm-preset-select"></select>
+          <button id="bgm-preview-btn" class="btn small" type="button">試聴</button>
+        </div>
+        <div id="bgm-upload-wrap" hidden>
+          <input type="file" id="bgm-file-input" accept="audio/*">
+        </div>
+        <label>BGMの音量
+          <input type="range" id="bgm-volume-slider" min="0" max="1" step="0.05" value="0.2">
+        </label>
+      </div>
+    </div>
+
+    <div class="audio-block">
+      <label class="checkbox-line">
+        <input type="checkbox" id="sfx-enable-checkbox">
+        カットした箇所に効果音を追加する
+      </label>
+      <div class="audio-options" id="sfx-options" hidden>
+        <select id="sfx-preset-select"></select>
+        <button id="sfx-preview-btn" class="btn small" type="button">試聴</button>
+        <p class="hint">検出されたカット箇所（最大20箇所）に効果音が入ります。</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="step" id="step-export" data-disabled="true">
+    <h2><span class="step-badge">5</span>書き出し</h2>
+    <button id="export-btn" class="btn primary">動画を書き出す</button>
+    <div class="progress-wrap" id="export-progress-wrap" hidden>
+      <div class="progress-bar"><div class="progress-fill" id="export-progress-fill"></div></div>
+      <p id="export-progress-text"></p>
+    </div>
+    <div id="export-result" hidden>
+      <video id="result-video" controls></video>
+      <a id="download-video-link" class="btn primary" download="edited-video.mp4">動画をダウンロード</a>
+    </div>
+  </section>
+
+</main>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>

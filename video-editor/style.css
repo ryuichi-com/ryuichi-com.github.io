@@ -1,0 +1,282 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
+  background: #f4f5f7;
+  color: #222;
+}
+
+a {
+  text-decoration: none;
+}
+
+.container {
+  max-width: 760px;
+  padding: 0 16px;
+  margin: 0 auto;
+}
+
+.page-header {
+  background: #2d2f3a;
+  color: white;
+  padding: 24px 0;
+}
+
+.page-header h1 {
+  margin: 8px 0 4px;
+  font-size: 26px;
+}
+
+.page-header .subtitle {
+  margin: 0;
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+.back-link {
+  color: #cfd2e0;
+  font-size: 14px;
+}
+
+.step {
+  background: white;
+  border-radius: 10px;
+  padding: 24px;
+  margin: 20px auto;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  transition: opacity 0.2s;
+}
+
+.step[data-disabled="true"] {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.step h2 {
+  margin-top: 0;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.step-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #4a6cf7;
+  color: white;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.dropzone {
+  border: 2px dashed #b7bcd6;
+  border-radius: 8px;
+  padding: 32px;
+  text-align: center;
+  cursor: pointer;
+  position: relative;
+  color: #666;
+}
+
+.dropzone.dragover {
+  background: #eef1ff;
+  border-color: #4a6cf7;
+}
+
+.dropzone input[type="file"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.preview-wrap {
+  position: relative;
+  margin-top: 16px;
+}
+
+#preview-video,
+#result-video {
+  width: 100%;
+  max-height: 420px;
+  background: black;
+  border-radius: 6px;
+  display: block;
+}
+
+.subtitle-overlay {
+  position: absolute;
+  bottom: 8%;
+  left: 0;
+  right: 0;
+  text-align: center;
+  color: white;
+  font-size: 20px;
+  text-shadow: 1px 1px 3px black, -1px -1px 3px black;
+  padding: 0 16px;
+  pointer-events: none;
+}
+
+.hint {
+  color: #777;
+  font-size: 13px;
+}
+
+.controls-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.controls-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+  color: #444;
+}
+
+input[type="range"] {
+  width: 100%;
+}
+
+.btn {
+  display: inline-block;
+  background: #eceff8;
+  color: #2d2f3a;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 18px;
+  font-size: 14px;
+  cursor: pointer;
+  margin: 4px 8px 4px 0;
+}
+
+.btn.primary {
+  background: #4a6cf7;
+  color: white;
+}
+
+.btn.small {
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+.btn:disabled {
+  background: #e2e2e2;
+  color: #999;
+  cursor: not-allowed;
+}
+
+#waveform-canvas {
+  width: 100%;
+  background: #f0f1f6;
+  border-radius: 6px;
+  margin: 12px 0;
+  display: block;
+}
+
+.progress-wrap {
+  margin-top: 12px;
+}
+
+.progress-bar {
+  background: #e6e8f0;
+  border-radius: 20px;
+  overflow: hidden;
+  height: 10px;
+}
+
+.progress-fill {
+  background: #4a6cf7;
+  height: 100%;
+  width: 0%;
+  transition: width 0.2s;
+}
+
+.transcript-list {
+  max-height: 260px;
+  overflow-y: auto;
+  border: 1px solid #e6e8f0;
+  border-radius: 6px;
+  margin: 14px 0;
+}
+
+.transcript-row {
+  display: flex;
+  gap: 10px;
+  padding: 8px 10px;
+  border-bottom: 1px solid #f0f1f6;
+  align-items: flex-start;
+}
+
+.transcript-row .time {
+  flex-shrink: 0;
+  color: #888;
+  font-size: 12px;
+  width: 90px;
+  padding-top: 6px;
+}
+
+.transcript-row textarea {
+  flex: 1;
+  resize: vertical;
+  min-height: 34px;
+  border: 1px solid #d8dae6;
+  border-radius: 4px;
+  padding: 6px 8px;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.checkbox-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  margin: 10px 0;
+}
+
+.audio-block {
+  border-top: 1px solid #eee;
+  padding-top: 14px;
+  margin-top: 14px;
+}
+
+.audio-block:first-child {
+  border-top: none;
+  padding-top: 0;
+  margin-top: 0;
+}
+
+.audio-options {
+  margin-left: 26px;
+}
+
+.radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+
+select {
+  padding: 6px 8px;
+  font-size: 14px;
+  border-radius: 6px;
+  border: 1px solid #d8dae6;
+}
+
+#export-result {
+  margin-top: 16px;
+}
