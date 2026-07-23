@@ -18,9 +18,15 @@ export async function getFFmpeg(onLog) {
       const ffmpeg = new FFmpeg();
       if (onLog) ffmpeg.on("log", ({ message }) => onLog(message));
       const base = `https://cdn.jsdelivr.net/npm/@ffmpeg/core@${CORE_VERSION}/dist/esm`;
+      // The ESM worker.js has relative imports ("./const.js" etc.) that only resolve when
+      // served from its real path, but a Worker constructed with a cross-origin URL is
+      // blocked by the browser. The UMD worker chunk is a single self-contained file with
+      // no relative imports, so it can safely be loaded as a same-origin blob: URL instead.
+      const workerChunkURL = `https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@${FFMPEG_VERSION}/dist/umd/814.ffmpeg.js`;
       await ffmpeg.load({
         coreURL: await toBlobURL(`${base}/ffmpeg-core.js`, "text/javascript"),
         wasmURL: await toBlobURL(`${base}/ffmpeg-core.wasm`, "application/wasm"),
+        classWorkerURL: await toBlobURL(workerChunkURL, "text/javascript"),
       });
       ffmpegInstance = ffmpeg;
       return ffmpeg;
