@@ -17,14 +17,22 @@ const state = {
   subtitleStyle: {
     color: "#ffffff",
     strokeColor: "#000000",
-    strokeWidth: 4,
-    fontSize: 32,
+    strokeRatio: 0.15,
+    fontSizePercent: 6,
     position: "bottom",
-    background: true,
+    background: false,
     backgroundColor: "#000000",
     backgroundOpacity: 0.5,
   },
 };
+
+const SUBTITLE_COLOR_PRESETS = [
+  { id: "white", label: "白", color: "#ffffff", strokeColor: "#000000" },
+  { id: "yellow", label: "黄", color: "#ffe600", strokeColor: "#000000" },
+  { id: "cyan", label: "水色", color: "#4de8ff", strokeColor: "#000000" },
+  { id: "red", label: "赤", color: "#ff3b30", strokeColor: "#ffffff" },
+  { id: "black", label: "黒", color: "#000000", strokeColor: "#ffffff" },
+];
 
 function setStepEnabled(sectionId, enabled) {
   el(sectionId).dataset.disabled = enabled ? "false" : "true";
@@ -240,19 +248,32 @@ function renderTranscriptList(segments) {
   });
 }
 
+function hexToRgba(hex, alpha) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 function applySubtitleOverlayStyle() {
   const style = state.subtitleStyle;
-  subtitleOverlay.style.fontSize = `${style.fontSize}px`;
+  const videoHeight = previewVideo.clientHeight || 300;
+  const fontSizePx = Math.round(videoHeight * (style.fontSizePercent / 100));
+  const strokeWidthPx = fontSizePx * style.strokeRatio;
+
+  subtitleOverlay.style.fontSize = `${fontSizePx}px`;
+  subtitleOverlay.style.fontWeight = "bold";
   subtitleOverlay.style.color = style.color;
-  subtitleOverlay.style.webkitTextStroke = `${style.strokeWidth * 0.5}px ${style.strokeColor}`;
+  subtitleOverlay.style.webkitTextStroke = `${strokeWidthPx}px ${style.strokeColor}`;
   subtitleOverlay.style.textShadow =
-    style.strokeWidth > 0
-      ? `0 0 ${style.strokeWidth}px ${style.strokeColor}, 0 0 ${style.strokeWidth}px ${style.strokeColor}`
+    style.strokeRatio > 0
+      ? `0 0 ${strokeWidthPx}px ${style.strokeColor}, 0 0 ${strokeWidthPx}px ${style.strokeColor}`
       : "none";
 
   if (style.position === "top") {
     subtitleOverlay.style.top = "6%";
     subtitleOverlay.style.bottom = "auto";
+    subtitleOverlay.style.transform = "none";
   } else if (style.position === "center") {
     subtitleOverlay.style.top = "50%";
     subtitleOverlay.style.bottom = "auto";
@@ -266,10 +287,36 @@ function applySubtitleOverlayStyle() {
   const span = subtitleOverlay.querySelector("span");
   if (span) {
     span.style.backgroundColor = style.background
-      ? `rgba(${parseInt(style.backgroundColor.slice(1, 3), 16)}, ${parseInt(style.backgroundColor.slice(3, 5), 16)}, ${parseInt(style.backgroundColor.slice(5, 7), 16)}, ${style.backgroundOpacity})`
+      ? hexToRgba(style.backgroundColor, style.backgroundOpacity)
       : "transparent";
   }
 }
+
+function renderColorPresets() {
+  const wrap = el("subtitle-color-presets");
+  SUBTITLE_COLOR_PRESETS.forEach((preset) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "subtitle-color-swatch";
+    btn.style.backgroundColor = preset.color;
+    btn.style.color = preset.strokeColor;
+    btn.title = preset.label;
+    btn.textContent = "字";
+    btn.dataset.presetId = preset.id;
+    if (preset.color === state.subtitleStyle.color) btn.classList.add("selected");
+    btn.addEventListener("click", () => {
+      state.subtitleStyle.color = preset.color;
+      state.subtitleStyle.strokeColor = preset.strokeColor;
+      el("subtitle-color").value = preset.color;
+      el("subtitle-stroke-color").value = preset.strokeColor;
+      wrap.querySelectorAll(".subtitle-color-swatch").forEach((el2) => el2.classList.remove("selected"));
+      btn.classList.add("selected");
+      applySubtitleOverlayStyle();
+    });
+    wrap.appendChild(btn);
+  });
+}
+renderColorPresets();
 
 function bindSubtitleStyleControl(id, key, parse = (v) => v) {
   const control = el(id);
@@ -281,8 +328,8 @@ function bindSubtitleStyleControl(id, key, parse = (v) => v) {
 
 bindSubtitleStyleControl("subtitle-color", "color");
 bindSubtitleStyleControl("subtitle-stroke-color", "strokeColor");
-bindSubtitleStyleControl("subtitle-stroke-width", "strokeWidth", Number);
-bindSubtitleStyleControl("subtitle-font-size", "fontSize", Number);
+bindSubtitleStyleControl("subtitle-stroke-width", "strokeRatio", Number);
+bindSubtitleStyleControl("subtitle-font-size", "fontSizePercent", Number);
 bindSubtitleStyleControl("subtitle-position", "position");
 bindSubtitleStyleControl("subtitle-bg-color", "backgroundColor");
 bindSubtitleStyleControl("subtitle-bg-opacity", "backgroundOpacity", Number);
@@ -293,6 +340,8 @@ el("subtitle-bg-enable").addEventListener("change", (e) => {
   applySubtitleOverlayStyle();
 });
 
+window.addEventListener("resize", applySubtitleOverlayStyle);
+previewVideo.addEventListener("loadedmetadata", applySubtitleOverlayStyle);
 applySubtitleOverlayStyle();
 
 previewVideo.addEventListener("timeupdate", () => {

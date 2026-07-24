@@ -26,7 +26,8 @@ function wrapText(ctx, text, maxWidth) {
 
 export function drawSubtitleFrame(ctx, text, width, height, style) {
   if (!text) return;
-  const fontSize = style.fontSize;
+  const fontSize = Math.round(height * (style.fontSizePercent / 100));
+  const strokeWidth = fontSize * style.strokeRatio;
   ctx.font = `bold ${fontSize}px "Hiragino Kaku Gothic ProN", "Yu Gothic", "Noto Sans JP", sans-serif`;
   ctx.textAlign = "center";
   ctx.textBaseline = "alphabetic";
@@ -59,8 +60,8 @@ export function drawSubtitleFrame(ctx, text, width, height, style) {
         fontSize * 1.15 + paddingY * 2
       );
     }
-    if (style.strokeWidth > 0) {
-      ctx.lineWidth = style.strokeWidth;
+    if (strokeWidth > 0) {
+      ctx.lineWidth = strokeWidth;
       ctx.strokeStyle = style.strokeColor;
       ctx.strokeText(line, width / 2, y);
     }

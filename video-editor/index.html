@@ -70,18 +70,26 @@
       プレビューに字幕を表示する
     </label>
 
+    <p class="hint">よく使われるYouTube動画の字幕（テロップ）スタイルを初期値にしています。そのままでも見やすいように調整済みです。</p>
+
+    <div class="subtitle-color-presets" id="subtitle-color-presets"></div>
+
     <div class="controls-grid subtitle-style-grid">
-      <label>文字の色
-        <input type="color" id="subtitle-color" value="#ffffff">
-      </label>
-      <label>縁取りの色
-        <input type="color" id="subtitle-stroke-color" value="#000000">
+      <label>文字の大きさ
+        <select id="subtitle-font-size">
+          <option value="4">小さめ</option>
+          <option value="6" selected>普通</option>
+          <option value="8">大きめ</option>
+          <option value="10">かなり大きめ</option>
+        </select>
       </label>
       <label>縁取りの太さ
-        <input type="range" id="subtitle-stroke-width" min="0" max="10" step="1" value="4">
-      </label>
-      <label>文字の大きさ
-        <input type="range" id="subtitle-font-size" min="16" max="64" step="1" value="32">
+        <select id="subtitle-stroke-width">
+          <option value="0">なし</option>
+          <option value="0.08">普通</option>
+          <option value="0.15" selected>太め</option>
+          <option value="0.22">かなり太め</option>
+        </select>
       </label>
       <label>表示位置
         <select id="subtitle-position">
@@ -91,18 +99,30 @@
         </select>
       </label>
     </div>
-    <label class="checkbox-line">
-      <input type="checkbox" id="subtitle-bg-enable" checked>
-      文字の背景をつける
-    </label>
-    <div class="controls-grid subtitle-style-grid" id="subtitle-bg-options">
-      <label>背景の色
-        <input type="color" id="subtitle-bg-color" value="#000000">
+
+    <details class="subtitle-advanced">
+      <summary>細かい色を指定する（詳細設定）</summary>
+      <div class="controls-grid subtitle-style-grid">
+        <label>文字の色
+          <input type="color" id="subtitle-color" value="#ffffff">
+        </label>
+        <label>縁取りの色
+          <input type="color" id="subtitle-stroke-color" value="#000000">
+        </label>
+      </div>
+      <label class="checkbox-line">
+        <input type="checkbox" id="subtitle-bg-enable">
+        文字の背景をつける
       </label>
-      <label>背景の濃さ
-        <input type="range" id="subtitle-bg-opacity" min="0" max="1" step="0.05" value="0.5">
-      </label>
-    </div>
+      <div class="controls-grid subtitle-style-grid" id="subtitle-bg-options" hidden>
+        <label>背景の色
+          <input type="color" id="subtitle-bg-color" value="#000000">
+        </label>
+        <label>背景の濃さ
+          <input type="range" id="subtitle-bg-opacity" min="0" max="1" step="0.05" value="0.5">
+        </label>
+      </div>
+    </details>
 
     <button id="download-vtt-btn" class="btn" disabled>字幕ファイルをダウンロード（.vtt）</button>
     <label class="checkbox-line">

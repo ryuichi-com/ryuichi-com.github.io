@@ -150,6 +150,43 @@ input[type="color"] {
   border-radius: 6px;
 }
 
+.subtitle-color-presets {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 10px 0 16px;
+}
+
+.subtitle-color-swatch {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid #d8dae6;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 16px;
+  -webkit-text-stroke: 1px;
+}
+
+.subtitle-color-swatch.selected {
+  border-color: #4a6cf7;
+  border-width: 3px;
+}
+
+.subtitle-advanced {
+  margin: 10px 0;
+}
+
+.subtitle-advanced summary {
+  cursor: pointer;
+  color: #4a6cf7;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
 .hint {
   color: #777;
   font-size: 13px;
