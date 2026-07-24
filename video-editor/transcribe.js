@@ -7,7 +7,7 @@ let worker = null;
 // Doing this in a dedicated worker keeps the page responsive throughout.
 function getWorker() {
   if (!worker) {
-    worker = new Worker(new URL("./transcribe-worker.js", import.meta.url), { type: "module" });
+    worker = new Worker(new URL("./transcribe-worker.js?v=3", import.meta.url), { type: "module" });
   }
   return worker;
 }
@@ -40,7 +40,46 @@ export async function decodeToMono16k(arrayBuffer) {
   return { samples: rendered.getChannelData(0), sampleRate: targetRate, duration: decoded.duration };
 }
 
-export function transcribeAudio(samples, onProgress) {
+const SENTENCE_END_PATTERN = /[。！？!?]$/;
+
+// Whisper's word-level chunks are re-grouped into subtitle-length cues here instead of
+// being displayed one word at a time or left at whisper's raw fixed-size chunk
+// boundaries (which often cut mid-sentence, since they're just 30-second windows).
+// A cue ends at a sentence-ending punctuation mark, or once it gets too long to read
+// comfortably, whichever comes first.
+export function regroupIntoSubtitleSegments(chunks, { maxDurationSec = 6, maxChars = 24 } = {}) {
+  const segments = [];
+  let current = null;
+
+  for (const chunk of chunks) {
+    const text = (chunk.text || "").trim();
+    if (!text) continue;
+    const start = chunk.timestamp?.[0] ?? 0;
+    const end = chunk.timestamp?.[1] ?? start;
+
+    if (!current) {
+      current = { start, end, text };
+      continue;
+    }
+
+    const mergedText = current.text + text;
+    const mergedDuration = end - current.start;
+    const shouldBreak =
+      SENTENCE_END_PATTERN.test(current.text) || mergedDuration > maxDurationSec || mergedText.length > maxChars;
+
+    if (shouldBreak) {
+      segments.push(current);
+      current = { start, end, text };
+    } else {
+      current.text = mergedText;
+      current.end = end;
+    }
+  }
+  if (current) segments.push(current);
+  return segments;
+}
+
+export function transcribeAudio(samples, modelId, onProgress) {
   const w = getWorker();
   // getChannelData() may return a view backed by the AudioBuffer's own storage, so copy
   // before transferring ownership of the underlying buffer to the worker.
@@ -61,19 +100,11 @@ export function transcribeAudio(samples, onProgress) {
 
       const output = event.data.output;
       const chunks = output.chunks || [{ timestamp: [0, samplesCopy.length / 16000], text: output.text }];
-      resolve(
-        chunks
-          .filter((c) => c.text && c.text.trim().length > 0)
-          .map((c) => ({
-            start: c.timestamp[0] ?? 0,
-            end: c.timestamp[1] ?? (c.timestamp[0] ?? 0) + 2,
-            text: c.text.trim(),
-          }))
-      );
+      resolve(regroupIntoSubtitleSegments(chunks));
     }
 
     w.addEventListener("message", handleMessage);
-    w.postMessage({ type: "transcribe", samples: samplesCopy }, [samplesCopy.buffer]);
+    w.postMessage({ type: "transcribe", samples: samplesCopy, modelId }, [samplesCopy.buffer]);
   });
 }
 

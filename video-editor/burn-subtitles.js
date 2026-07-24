@@ -73,7 +73,11 @@ export function drawSubtitleFrame(ctx, text, width, height, style) {
 export async function burnSubtitles(ffmpeg, videoBlob, segments, style, onProgress) {
   const videoEl = document.createElement("video");
   videoEl.src = URL.createObjectURL(videoBlob);
-  videoEl.muted = true;
+  // Muting the element also silences the signal captured via createMediaElementSource
+  // in Chromium-based browsers, not just the speaker output — so despite looking like
+  // the right way to keep this hidden background element quiet, it silently produced
+  // an audio-less recording. Leaving it unmuted means audio audibly plays during the
+  // burn-in process, which is an acceptable trade-off for actually getting audio out.
   await new Promise((resolve, reject) => {
     videoEl.onloadedmetadata = resolve;
     videoEl.onerror = () => reject(new Error("動画の読み込みに失敗しました"));
@@ -87,6 +91,11 @@ export async function burnSubtitles(ffmpeg, videoBlob, segments, style, onProgre
   const ctx = canvas.getContext("2d");
 
   const audioCtx = new AudioContext();
+  // Browsers create a new AudioContext in the "suspended" state unless it's started
+  // within a very short window of a user gesture. Burning subtitles happens well after
+  // the export button click (after audio mixing etc.), so without an explicit resume()
+  // the context can stay suspended and silently produce no audio at all in the output.
+  await audioCtx.resume();
   const source = audioCtx.createMediaElementSource(videoEl);
   const dest = audioCtx.createMediaStreamDestination();
   source.connect(dest);
@@ -110,28 +119,45 @@ export async function burnSubtitles(ffmpeg, videoBlob, segments, style, onProgre
     return segments.find((s) => t >= s.start && t <= s.end);
   }
 
-  let rafId = null;
-  function drawLoop() {
+  function drawFrame() {
     ctx.drawImage(videoEl, 0, 0, width, height);
     const seg = activeSegment(videoEl.currentTime);
     drawSubtitleFrame(ctx, seg ? seg.text : "", width, height, style);
     if (onProgress && videoEl.duration) {
       onProgress(videoEl.currentTime / videoEl.duration);
     }
-    if (!videoEl.paused && !videoEl.ended) {
-      rafId = requestAnimationFrame(drawLoop);
-    }
+  }
+
+  // requestAnimationFrame is throttled or fully suspended by the browser as soon as the
+  // tab is backgrounded (e.g. the user switches tabs while a long export runs), which
+  // would freeze the recorded video on whatever frame was last drawn. Video playback
+  // itself, however, keeps running in the background, so driving the draw loop from
+  // requestVideoFrameCallback (tied to actual decoded video frames) keeps it going
+  // regardless of tab visibility. Fall back to a timer for browsers without it.
+  let framesDone = false;
+  let intervalId = null;
+  if (typeof videoEl.requestVideoFrameCallback === "function") {
+    const onFrame = () => {
+      if (framesDone) return;
+      drawFrame();
+      videoEl.requestVideoFrameCallback(onFrame);
+    };
+    videoEl.requestVideoFrameCallback(onFrame);
+  } else {
+    intervalId = setInterval(() => {
+      if (!framesDone) drawFrame();
+    }, 1000 / 30);
   }
 
   recorder.start();
   videoEl.currentTime = 0;
   await videoEl.play();
-  drawLoop();
 
   await new Promise((resolve) => {
     videoEl.onended = resolve;
   });
-  if (rafId) cancelAnimationFrame(rafId);
+  framesDone = true;
+  if (intervalId) clearInterval(intervalId);
   recorder.stop();
   await stopped;
   await audioCtx.close();

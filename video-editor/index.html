@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>動画自動編集ツール</title>
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=3">
 </head>
 <body>
 <header class="page-header">
@@ -60,6 +60,15 @@
   <section class="step" id="step-subtitle" data-disabled="true">
     <h2><span class="step-badge">3</span>文字起こし・字幕</h2>
     <p class="hint">文字起こし後、字幕の見た目を自由に調整できます。「⑤書き出し」で動画に焼き込むか、.vtt ファイルとして別に保存するか選べます。</p>
+    <div class="controls-grid subtitle-style-grid">
+      <label>文字起こしの精度
+        <select id="transcribe-model-select">
+          <option value="Xenova/whisper-base">標準（速い）</option>
+          <option value="Xenova/whisper-small">高精度（やや時間がかかります）</option>
+          <option value="Xenova/whisper-medium" selected>最高精度（時間がかかります・初回は約1.5GBのダウンロード）</option>
+        </select>
+      </label>
+    </div>
     <button id="transcribe-btn" class="btn">文字起こしを実行する（初回はモデルの読み込みに時間がかかります）</button>
     <div class="progress-wrap" id="model-progress-wrap" hidden>
       <div class="progress-bar"><div class="progress-fill" id="model-progress-fill"></div></div>
@@ -191,6 +200,6 @@
 
 </main>
 
-<script type="module" src="app.js"></script>
+<script type="module" src="app.js?v=3"></script>
 </body>
 </html>
