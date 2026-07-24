@@ -105,32 +105,51 @@ async function concatFilesInBatches(ffmpeg, fileNames, outputName, batchSize = 1
   }
 }
 
+// WASM linear memory can only grow, never shrink, for as long as a module instance is
+// alive — so running one ffmpeg.exec() call per segment (hundreds of them, for a long
+// video with many cuts) keeps ratcheting up real memory use across calls even though
+// each individual extraction is cheap, eventually hitting the module's hard memory
+// ceiling ("memory access out of bounds") partway through. Opening the input once and
+// extracting many segments as multiple outputs of a single ffmpeg invocation avoids
+// that: it costs one process lifecycle instead of dozens, so memory bounds are governed
+// by the batch's own peak needs rather than an ever-climbing high-water mark. Segments
+// are still extracted in batches (not all at once) so progress can be reported and a
+// single bad batch doesn't block the rest.
+async function extractSegmentsBatch(ffmpeg, inputName, segments, startIndex) {
+  const args = ["-i", inputName];
+  const segmentNames = [];
+  segments.forEach((seg, offset) => {
+    const segName = `seg${startIndex + offset}.mp4`;
+    args.push(
+      "-ss",
+      String(seg.start),
+      "-to",
+      String(seg.end),
+      "-c",
+      "copy",
+      "-avoid_negative_ts",
+      "make_zero",
+      segName
+    );
+    segmentNames.push(segName);
+  });
+  await ffmpeg.exec(args);
+  return segmentNames;
+}
+
 // Extracts each kept segment with stream copy (no decode/encode, just a fast
 // keyframe-aligned cut) and joins them with the concat demuxer, which is also stream
 // copy. This only works when the source codecs are compatible with an mp4 container
 // (true for the vast majority of uploads: phone/screen recordings in H.264+AAC).
-async function cutSilenceSegmentsFast(ffmpeg, inputName, keepSegments, onProgress) {
+async function cutSilenceSegmentsFast(ffmpeg, inputName, keepSegments, onProgress, batchSize = 20) {
   const outputName = "cut.mp4";
   const segmentNames = [];
   try {
-    for (let i = 0; i < keepSegments.length; i++) {
-      const seg = keepSegments[i];
-      const segName = `seg${i}.mp4`;
-      await ffmpeg.exec([
-        "-ss",
-        String(seg.start),
-        "-to",
-        String(seg.end),
-        "-i",
-        inputName,
-        "-c",
-        "copy",
-        "-avoid_negative_ts",
-        "make_zero",
-        segName,
-      ]);
-      segmentNames.push(segName);
-      if (onProgress) onProgress(((i + 1) / (keepSegments.length + 1)) * 0.8);
+    for (let i = 0; i < keepSegments.length; i += batchSize) {
+      const batch = keepSegments.slice(i, i + batchSize);
+      const batchNames = await extractSegmentsBatch(ffmpeg, inputName, batch, i);
+      segmentNames.push(...batchNames);
+      if (onProgress) onProgress((Math.min(i + batchSize, keepSegments.length) / (keepSegments.length + 1)) * 0.8);
     }
 
     await concatFilesInBatches(ffmpeg, segmentNames, outputName);
