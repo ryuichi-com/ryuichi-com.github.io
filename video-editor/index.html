@@ -64,11 +64,12 @@
       <label>文字起こしの精度
         <select id="transcribe-model-select">
           <option value="Xenova/whisper-base">標準（速い）</option>
-          <option value="Xenova/whisper-small">高精度（やや時間がかかります）</option>
-          <option value="Xenova/whisper-medium" selected>最高精度（時間がかかります・初回は約1.5GBのダウンロード）</option>
+          <option value="Xenova/whisper-small" selected>高精度（やや時間がかかります）</option>
+          <option value="Xenova/whisper-medium">最高精度（かなり重く、環境によってはエラーになる場合があります）</option>
         </select>
       </label>
     </div>
+    <p class="hint">「最高精度」はモデルが非常に大きく、パソコンのメモリによってはエラーで失敗することがあります。失敗した場合は「高精度」または「標準」でお試しください。</p>
     <button id="transcribe-btn" class="btn">文字起こしを実行する（初回はモデルの読み込みに時間がかかります）</button>
     <div class="progress-wrap" id="model-progress-wrap" hidden>
       <div class="progress-bar"><div class="progress-fill" id="model-progress-fill"></div></div>
