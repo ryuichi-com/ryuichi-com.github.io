@@ -42,11 +42,11 @@ export async function decodeToMono16k(arrayBuffer) {
 
 const SENTENCE_END_PATTERN = /[。！？!?]$/;
 
-// Whisper's word-level chunks are re-grouped into subtitle-length cues here instead of
-// being displayed one word at a time or left at whisper's raw fixed-size chunk
-// boundaries (which often cut mid-sentence, since they're just 30-second windows).
-// A cue ends at a sentence-ending punctuation mark, or once it gets too long to read
-// comfortably, whichever comes first.
+// Whisper's chunk-level output (word-level timestamps aren't supported for whisper in
+// this version of transformers.js — see transcribe-worker.js) is re-grouped into
+// subtitle-length cues here. Adjacent chunks are merged until a sentence-ending
+// punctuation mark or a length/duration limit is hit; a single chunk longer than that
+// is left as its own cue rather than being cut mid-sentence.
 export function regroupIntoSubtitleSegments(chunks, { maxDurationSec = 6, maxChars = 24 } = {}) {
   const segments = [];
   let current = null;
