@@ -134,6 +134,23 @@ async function extractSegmentsBatch(ffmpeg, inputName, segments, startIndex) {
     segmentNames.push(segName);
   });
   await ffmpeg.exec(args);
+
+  // ffmpeg.exec() does not reject when a stream-copy mux is incompatible (e.g. muxing
+  // VP8 into an mp4 container) — it can exit "successfully" having written empty
+  // (0-byte) output files instead of throwing. Concatenating those later usually
+  // surfaces the problem, but not always (e.g. a lone segment in the last batch just
+  // passes straight through with no concat step to notice), so every segment's size is
+  // checked explicitly here to make sure callers' fallback logic actually triggers
+  // instead of silently shipping broken/empty video files.
+  for (const name of segmentNames) {
+    const data = await ffmpeg.readFile(name);
+    const size = data.byteLength ?? data.length;
+    if (!size) {
+      for (const n of segmentNames) await tryDeleteFile(ffmpeg, n);
+      throw new Error(`stream copy produced an empty file for ${name} (likely an incompatible codec/container)`);
+    }
+  }
+
   return segmentNames;
 }
 
@@ -200,6 +217,65 @@ async function cutSilenceSegmentsReencode(ffmpeg, inputName, keepSegments, onPro
   ]);
 
   return ffmpeg.readFile(outputName);
+}
+
+// Splits a long source video into fixed-length chunk files (stream copy, same
+// batched-multi-output approach as the silence cut above) so each chunk can go through
+// the rest of the pipeline (silence cut, transcription, subtitle burn-in) independently,
+// keeping every operation's memory and processing time bounded regardless of how long
+// the original upload is.
+export async function splitVideoIntoChunks(ffmpeg, videoFile, totalDurationSec, chunkDurationSec, onProgress) {
+  const inputName = await mountInputFile(ffmpeg, videoFile);
+  const boundaries = [];
+  for (let t = 0; t < totalDurationSec; t += chunkDurationSec) {
+    boundaries.push({ start: t, end: Math.min(totalDurationSec, t + chunkDurationSec) });
+  }
+
+  const chunkBytesList = new Array(boundaries.length);
+  try {
+    const batchSize = 10;
+    for (let i = 0; i < boundaries.length; i += batchSize) {
+      const batch = boundaries.slice(i, i + batchSize);
+      let names;
+      try {
+        names = await extractSegmentsBatch(ffmpeg, inputName, batch, i);
+      } catch (err) {
+        console.warn("batched split failed, falling back to one-by-one re-encode:", err);
+        names = [];
+        for (let offset = 0; offset < batch.length; offset++) {
+          const seg = batch[offset];
+          const name = `seg${i + offset}.mp4`;
+          await ffmpeg.exec([
+            "-i",
+            inputName,
+            "-ss",
+            String(seg.start),
+            "-to",
+            String(seg.end),
+            "-c:v",
+            "libx264",
+            "-preset",
+            "ultrafast",
+            "-crf",
+            "23",
+            "-c:a",
+            "aac",
+            name,
+          ]);
+          names.push(name);
+        }
+      }
+      for (let offset = 0; offset < names.length; offset++) {
+        chunkBytesList[i + offset] = await ffmpeg.readFile(names[offset]);
+        await tryDeleteFile(ffmpeg, names[offset]);
+      }
+      if (onProgress) onProgress(Math.min(i + batchSize, boundaries.length) / boundaries.length);
+    }
+  } finally {
+    await unmountInputFile(ffmpeg);
+  }
+
+  return boundaries.map((b, i) => ({ start: b.start, end: b.end, bytes: chunkBytesList[i] }));
 }
 
 export async function cutSilenceSegments(ffmpeg, videoFile, keepSegments, onProgress) {

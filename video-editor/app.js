@@ -1,8 +1,8 @@
-import { detectSilenceKeepSegments, totalKeepDuration, computeWaveformPeaks } from "./silence.js?v=3";
-import { BGM_PRESETS, SFX_PRESETS, generateBgmBuffer, generateSfxBuffer, audioBufferToWav } from "./audio-gen.js?v=3";
-import { decodeToMono16k, transcribeAudio, buildVtt } from "./transcribe.js?v=3";
-import { getFFmpeg, cutSilenceSegments, mixFinalAudio } from "./ffmpeg-pipeline.js?v=3";
-import { burnSubtitles } from "./burn-subtitles.js?v=3";
+import { detectSilenceKeepSegments, totalKeepDuration, computeWaveformPeaks } from "./silence.js?v=4";
+import { BGM_PRESETS, SFX_PRESETS, generateBgmBuffer, generateSfxBuffer, audioBufferToWav } from "./audio-gen.js?v=4";
+import { decodeToMono16k, transcribeAudio, buildVtt } from "./transcribe.js?v=4";
+import { getFFmpeg, cutSilenceSegments, mixFinalAudio, splitVideoIntoChunks } from "./ffmpeg-pipeline.js?v=4";
+import { burnSubtitles } from "./burn-subtitles.js?v=4";
 
 const el = (id) => document.getElementById(id);
 
@@ -16,6 +16,8 @@ const state = {
   bgmFile: null,
   cutPointTimes: [],
   selectedCutPoints: new Set(),
+  chunks: [],
+  currentChunkIndex: null,
   subtitleStyle: {
     color: "#ffffff",
     strokeColor: "#000000",
@@ -88,12 +90,28 @@ fileInput.addEventListener("change", (e) => {
   if (file) handleVideoFile(file);
 });
 
-async function handleVideoFile(file) {
+const LONG_VIDEO_THRESHOLD_SEC = 20 * 60;
+const CHUNK_DURATION_SEC = 15 * 60;
+
+function formatMinSec(totalSec) {
+  const m = Math.floor(totalSec / 60);
+  const s = Math.floor(totalSec % 60);
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+async function handleVideoFile(file, { skipSplitCheck = false } = {}) {
+  if (!skipSplitCheck) {
+    state.chunks = [];
+    state.currentChunkIndex = null;
+    el("chunk-list-wrap").hidden = true;
+    el("split-suggestion").hidden = true;
+  }
+
   state.videoFile = file;
   previewVideo.src = URL.createObjectURL(file);
   el("upload-info").textContent = "音声を解析しています…";
 
-  setStepEnabled("step-cut", true);
+  setStepEnabled("step-cut", false);
   setStepEnabled("step-subtitle", false);
   setStepEnabled("step-audio", false);
   setStepEnabled("step-export", false);
@@ -102,6 +120,113 @@ async function handleVideoFile(file) {
   const arrayBuffer = await file.arrayBuffer();
   state.analysis = await decodeToMono16k(arrayBuffer);
   el("upload-info").textContent = `読み込み完了（長さ: ${state.analysis.duration.toFixed(1)}秒）`;
+
+  if (!skipSplitCheck && state.analysis.duration > LONG_VIDEO_THRESHOLD_SEC) {
+    el("split-duration-text").textContent = formatMinSec(state.analysis.duration);
+    el("split-suggestion").hidden = false;
+  } else {
+    setStepEnabled("step-cut", true);
+  }
+}
+
+el("split-skip-btn").addEventListener("click", () => {
+  el("split-suggestion").hidden = true;
+  setStepEnabled("step-cut", true);
+});
+
+el("split-btn").addEventListener("click", async () => {
+  const btn = el("split-btn");
+  const skipBtn = el("split-skip-btn");
+  btn.disabled = true;
+  skipBtn.disabled = true;
+  const progressWrap = el("split-progress-wrap");
+  const progressFill = el("split-progress-fill");
+  const progressText = el("split-progress-text");
+  progressWrap.hidden = false;
+  progressText.textContent = "分割しています…";
+
+  try {
+    const ffmpeg = await getFFmpeg();
+    const chunks = await splitVideoIntoChunks(
+      ffmpeg,
+      state.videoFile,
+      state.analysis.duration,
+      CHUNK_DURATION_SEC,
+      (progress) => {
+        const pct = Math.min(100, Math.max(0, Math.round(progress * 100)));
+        progressFill.style.width = `${pct}%`;
+        progressText.textContent = `分割中… ${pct}%`;
+      }
+    );
+
+    state.chunks = chunks.map((c, i) => ({
+      start: c.start,
+      end: c.end,
+      file: new File([c.bytes], `part${i + 1}.mp4`, { type: "video/mp4" }),
+      status: "pending",
+      downloadUrl: null,
+    }));
+    state.currentChunkIndex = null;
+
+    progressText.textContent = `分割完了！（${state.chunks.length}パート）`;
+    el("split-suggestion").hidden = true;
+    el("chunk-list-wrap").hidden = false;
+    renderChunkList();
+  } catch (err) {
+    console.error(err);
+    progressText.textContent = `エラーが発生しました: ${errorMessage(err)}`;
+  } finally {
+    btn.disabled = false;
+    skipBtn.disabled = false;
+  }
+});
+
+function renderChunkList() {
+  const listEl = el("chunk-list");
+  listEl.innerHTML = "";
+  const statusLabels = { pending: "未処理", active: "処理中", done: "完了" };
+
+  state.chunks.forEach((chunk, i) => {
+    const row = document.createElement("div");
+    row.className = "chunk-row" + (state.currentChunkIndex === i ? " active" : "");
+
+    const label = document.createElement("span");
+    label.className = "chunk-label";
+    label.textContent = `パート${i + 1}（${formatMinSec(chunk.start)}〜${formatMinSec(chunk.end)}）`;
+
+    const status = document.createElement("span");
+    status.className = `chunk-status ${chunk.status}`;
+    status.textContent = statusLabels[chunk.status];
+
+    const processBtn = document.createElement("button");
+    processBtn.type = "button";
+    processBtn.className = "btn small";
+    processBtn.textContent = "このパートを処理する";
+    processBtn.addEventListener("click", () => selectChunk(i));
+
+    row.appendChild(label);
+    row.appendChild(status);
+    row.appendChild(processBtn);
+
+    if (chunk.downloadUrl) {
+      const link = document.createElement("a");
+      link.className = "btn small";
+      link.href = chunk.downloadUrl;
+      link.download = `edited-part${i + 1}.mp4`;
+      link.textContent = "ダウンロード";
+      row.appendChild(link);
+    }
+
+    listEl.appendChild(row);
+  });
+}
+
+async function selectChunk(i) {
+  state.currentChunkIndex = i;
+  state.chunks[i].status = "active";
+  renderChunkList();
+  await handleVideoFile(state.chunks[i].file, { skipSplitCheck: true });
+  el("step-cut").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 // ---------- Step 2: silence cut ----------
@@ -612,6 +737,13 @@ el("export-btn").addEventListener("click", async () => {
     link.href = url;
     el("export-result").hidden = false;
     progressText.textContent = "書き出し完了！";
+
+    if (state.currentChunkIndex !== null && state.chunks[state.currentChunkIndex]) {
+      const chunk = state.chunks[state.currentChunkIndex];
+      chunk.status = "done";
+      chunk.downloadUrl = url;
+      renderChunkList();
+    }
   } catch (err) {
     console.error(err);
     progressText.textContent = `エラーが発生しました: ${errorMessage(err)}`;
