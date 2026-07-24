@@ -300,6 +300,31 @@ input[type="range"] {
   font-family: inherit;
 }
 
+.cutpoint-toolbar {
+  margin: 10px 0;
+}
+
+.cutpoint-list {
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid #e6e8f0;
+  border-radius: 6px;
+}
+
+.cutpoint-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-bottom: 1px solid #f0f1f6;
+  font-size: 14px;
+}
+
+.cutpoint-row .time {
+  color: #555;
+  flex: 1;
+}
+
 .checkbox-line {
   display: flex;
   align-items: center;

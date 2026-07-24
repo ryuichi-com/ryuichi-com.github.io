@@ -166,7 +166,12 @@
       <div class="audio-options" id="sfx-options" hidden>
         <select id="sfx-preset-select"></select>
         <button id="sfx-preview-btn" class="btn small" type="button">試聴</button>
-        <p class="hint">検出されたカット箇所（最大20箇所）に効果音が入ります。</p>
+        <p class="hint">全部につける必要はありません。プレビューの「▶」でその場面を確認しながら、つけたい箇所だけチェックしてください（反映されるのは最大20箇所までです）。</p>
+        <div class="cutpoint-toolbar">
+          <button id="sfx-select-all-btn" class="btn small" type="button">すべて選択</button>
+          <button id="sfx-select-none-btn" class="btn small" type="button">すべて解除</button>
+        </div>
+        <div id="cutpoint-list" class="cutpoint-list"></div>
       </div>
     </div>
   </section>
