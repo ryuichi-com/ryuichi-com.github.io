@@ -1,23 +1,15 @@
-let transcriberPromise = null;
+let worker = null;
 
-async function loadTransformers() {
-  return import("https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js");
-}
-
-export async function loadTranscriber(onProgress) {
-  if (!transcriberPromise) {
-    transcriberPromise = (async () => {
-      const { pipeline, env } = await loadTransformers();
-      env.allowLocalModels = false;
-      return pipeline("automatic-speech-recognition", "Xenova/whisper-base", {
-        quantized: true,
-        progress_callback: (progress) => {
-          if (onProgress) onProgress(progress);
-        },
-      });
-    })();
+// The whisper model download + the transcription inference itself are both heavy,
+// CPU-bound work. Running them on the main thread (as a plain async function call)
+// still blocks all rendering and input handling for as long as they take, which for a
+// long recording is minutes — long enough for the browser to consider the tab hung.
+// Doing this in a dedicated worker keeps the page responsive throughout.
+function getWorker() {
+  if (!worker) {
+    worker = new Worker(new URL("./transcribe-worker.js", import.meta.url), { type: "module" });
   }
-  return transcriberPromise;
+  return worker;
 }
 
 export async function decodeToMono16k(arrayBuffer) {
@@ -48,24 +40,41 @@ export async function decodeToMono16k(arrayBuffer) {
   return { samples: rendered.getChannelData(0), sampleRate: targetRate, duration: decoded.duration };
 }
 
-export async function transcribeAudio(samples, onProgress) {
-  const transcriber = await loadTranscriber(onProgress);
-  const output = await transcriber(samples, {
-    language: "japanese",
-    task: "transcribe",
-    return_timestamps: true,
-    chunk_length_s: 30,
-    stride_length_s: 5,
-  });
+export function transcribeAudio(samples, onProgress) {
+  const w = getWorker();
+  // getChannelData() may return a view backed by the AudioBuffer's own storage, so copy
+  // before transferring ownership of the underlying buffer to the worker.
+  const samplesCopy = samples.slice();
 
-  const chunks = output.chunks || [{ timestamp: [0, samples.length / 16000], text: output.text }];
-  return chunks
-    .filter((c) => c.text && c.text.trim().length > 0)
-    .map((c) => ({
-      start: c.timestamp[0] ?? 0,
-      end: c.timestamp[1] ?? (c.timestamp[0] ?? 0) + 2,
-      text: c.text.trim(),
-    }));
+  return new Promise((resolve, reject) => {
+    function handleMessage(event) {
+      const { type } = event.data;
+      if (type === "progress") {
+        if (onProgress) onProgress(event.data.progress);
+        return;
+      }
+      w.removeEventListener("message", handleMessage);
+      if (type === "error") {
+        reject(new Error(event.data.message));
+        return;
+      }
+
+      const output = event.data.output;
+      const chunks = output.chunks || [{ timestamp: [0, samplesCopy.length / 16000], text: output.text }];
+      resolve(
+        chunks
+          .filter((c) => c.text && c.text.trim().length > 0)
+          .map((c) => ({
+            start: c.timestamp[0] ?? 0,
+            end: c.timestamp[1] ?? (c.timestamp[0] ?? 0) + 2,
+            text: c.text.trim(),
+          }))
+      );
+    }
+
+    w.addEventListener("message", handleMessage);
+    w.postMessage({ type: "transcribe", samples: samplesCopy }, [samplesCopy.buffer]);
+  });
 }
 
 function formatVttTime(seconds) {
