@@ -28,12 +28,18 @@ const state = {
   },
 };
 
+// Every preset pairs a bright fill color with a black outline (never the reverse).
+// Video content is unpredictable — sometimes bright, sometimes dark — and a dark
+// outline is what reliably keeps text readable against either, the way professional
+// captions and top YouTube channels do it. A light outline (e.g. around dark text)
+// looks fine in isolation but all but disappears over a bright frame, which is the
+// same problem the red/white-outline preset had.
 const SUBTITLE_COLOR_PRESETS = [
   { id: "white", label: "白", color: "#ffffff", strokeColor: "#000000" },
   { id: "yellow", label: "黄", color: "#ffe600", strokeColor: "#000000" },
   { id: "cyan", label: "水色", color: "#4de8ff", strokeColor: "#000000" },
-  { id: "red", label: "赤", color: "#ff3b30", strokeColor: "#000000" },
-  { id: "black", label: "黒", color: "#000000", strokeColor: "#ffffff" },
+  { id: "green", label: "緑", color: "#4dff88", strokeColor: "#000000" },
+  { id: "red", label: "赤", color: "#ff6259", strokeColor: "#000000" },
 ];
 
 function errorMessage(err) {
