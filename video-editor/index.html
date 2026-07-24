@@ -58,7 +58,7 @@
 
   <section class="step" id="step-subtitle" data-disabled="true">
     <h2><span class="step-badge">3</span>文字起こし・字幕</h2>
-    <p class="hint">字幕はプレビューへの表示と .vtt ファイルのダウンロードに対応しています（動画ファイル自体への焼き込みは行いません。YouTubeなどにアップロードする際に字幕ファイルとして追加できます）。</p>
+    <p class="hint">文字起こし後、字幕の見た目を自由に調整できます。「⑤書き出し」で動画に焼き込むか、.vtt ファイルとして別に保存するか選べます。</p>
     <button id="transcribe-btn" class="btn">文字起こしを実行する（初回はモデルの読み込みに時間がかかります）</button>
     <div class="progress-wrap" id="model-progress-wrap" hidden>
       <div class="progress-bar"><div class="progress-fill" id="model-progress-fill"></div></div>
@@ -69,7 +69,66 @@
       <input type="checkbox" id="show-subtitle-checkbox" checked>
       プレビューに字幕を表示する
     </label>
+
+    <p class="hint">よく使われるYouTube動画の字幕（テロップ）スタイルを初期値にしています。そのままでも見やすいように調整済みです。</p>
+
+    <div class="subtitle-color-presets" id="subtitle-color-presets"></div>
+
+    <div class="controls-grid subtitle-style-grid">
+      <label>文字の大きさ
+        <select id="subtitle-font-size">
+          <option value="4">小さめ</option>
+          <option value="6" selected>普通</option>
+          <option value="8">大きめ</option>
+          <option value="10">かなり大きめ</option>
+        </select>
+      </label>
+      <label>縁取りの太さ
+        <select id="subtitle-stroke-width">
+          <option value="0">なし</option>
+          <option value="0.08">普通</option>
+          <option value="0.15" selected>太め</option>
+          <option value="0.22">かなり太め</option>
+        </select>
+      </label>
+      <label>表示位置
+        <select id="subtitle-position">
+          <option value="bottom" selected>下</option>
+          <option value="center">中央</option>
+          <option value="top">上</option>
+        </select>
+      </label>
+    </div>
+
+    <details class="subtitle-advanced">
+      <summary>細かい色を指定する（詳細設定）</summary>
+      <div class="controls-grid subtitle-style-grid">
+        <label>文字の色
+          <input type="color" id="subtitle-color" value="#ffffff">
+        </label>
+        <label>縁取りの色
+          <input type="color" id="subtitle-stroke-color" value="#000000">
+        </label>
+      </div>
+      <label class="checkbox-line">
+        <input type="checkbox" id="subtitle-bg-enable">
+        文字の背景をつける
+      </label>
+      <div class="controls-grid subtitle-style-grid" id="subtitle-bg-options" hidden>
+        <label>背景の色
+          <input type="color" id="subtitle-bg-color" value="#000000">
+        </label>
+        <label>背景の濃さ
+          <input type="range" id="subtitle-bg-opacity" min="0" max="1" step="0.05" value="0.5">
+        </label>
+      </div>
+    </details>
+
     <button id="download-vtt-btn" class="btn" disabled>字幕ファイルをダウンロード（.vtt）</button>
+    <label class="checkbox-line">
+      <input type="checkbox" id="burn-subtitle-checkbox" disabled>
+      書き出し時に字幕を動画に焼き込む（動画の長さと同じくらいの処理時間がかかります）
+    </label>
   </section>
 
   <section class="step" id="step-audio" data-disabled="true">
