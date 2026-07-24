@@ -2,6 +2,7 @@ import { detectSilenceKeepSegments, totalKeepDuration, computeWaveformPeaks } fr
 import { BGM_PRESETS, SFX_PRESETS, generateBgmBuffer, generateSfxBuffer, audioBufferToWav } from "./audio-gen.js";
 import { decodeToMono16k, transcribeAudio, buildVtt } from "./transcribe.js";
 import { getFFmpeg, cutSilenceSegments, mixFinalAudio } from "./ffmpeg-pipeline.js";
+import { burnSubtitles } from "./burn-subtitles.js";
 
 const el = (id) => document.getElementById(id);
 
@@ -13,6 +14,16 @@ const state = {
   cutDurationSeconds: 0,
   transcriptSegments: [],
   bgmFile: null,
+  subtitleStyle: {
+    color: "#ffffff",
+    strokeColor: "#000000",
+    strokeWidth: 4,
+    fontSize: 32,
+    position: "bottom",
+    background: true,
+    backgroundColor: "#000000",
+    backgroundOpacity: 0.5,
+  },
 };
 
 function setStepEnabled(sectionId, enabled) {
@@ -197,6 +208,7 @@ el("transcribe-btn").addEventListener("click", async () => {
     state.transcriptSegments = segments;
     renderTranscriptList(segments);
     el("download-vtt-btn").disabled = false;
+    el("burn-subtitle-checkbox").disabled = false;
   } catch (err) {
     console.error(err);
     progressText.textContent = `エラーが発生しました: ${err.message}`;
@@ -228,14 +240,75 @@ function renderTranscriptList(segments) {
   });
 }
 
+function applySubtitleOverlayStyle() {
+  const style = state.subtitleStyle;
+  subtitleOverlay.style.fontSize = `${style.fontSize}px`;
+  subtitleOverlay.style.color = style.color;
+  subtitleOverlay.style.webkitTextStroke = `${style.strokeWidth * 0.5}px ${style.strokeColor}`;
+  subtitleOverlay.style.textShadow =
+    style.strokeWidth > 0
+      ? `0 0 ${style.strokeWidth}px ${style.strokeColor}, 0 0 ${style.strokeWidth}px ${style.strokeColor}`
+      : "none";
+
+  if (style.position === "top") {
+    subtitleOverlay.style.top = "6%";
+    subtitleOverlay.style.bottom = "auto";
+  } else if (style.position === "center") {
+    subtitleOverlay.style.top = "50%";
+    subtitleOverlay.style.bottom = "auto";
+    subtitleOverlay.style.transform = "translateY(-50%)";
+  } else {
+    subtitleOverlay.style.top = "auto";
+    subtitleOverlay.style.bottom = "8%";
+    subtitleOverlay.style.transform = "none";
+  }
+
+  const span = subtitleOverlay.querySelector("span");
+  if (span) {
+    span.style.backgroundColor = style.background
+      ? `rgba(${parseInt(style.backgroundColor.slice(1, 3), 16)}, ${parseInt(style.backgroundColor.slice(3, 5), 16)}, ${parseInt(style.backgroundColor.slice(5, 7), 16)}, ${style.backgroundOpacity})`
+      : "transparent";
+  }
+}
+
+function bindSubtitleStyleControl(id, key, parse = (v) => v) {
+  const control = el(id);
+  control.addEventListener("input", () => {
+    state.subtitleStyle[key] = parse(control.value);
+    applySubtitleOverlayStyle();
+  });
+}
+
+bindSubtitleStyleControl("subtitle-color", "color");
+bindSubtitleStyleControl("subtitle-stroke-color", "strokeColor");
+bindSubtitleStyleControl("subtitle-stroke-width", "strokeWidth", Number);
+bindSubtitleStyleControl("subtitle-font-size", "fontSize", Number);
+bindSubtitleStyleControl("subtitle-position", "position");
+bindSubtitleStyleControl("subtitle-bg-color", "backgroundColor");
+bindSubtitleStyleControl("subtitle-bg-opacity", "backgroundOpacity", Number);
+
+el("subtitle-bg-enable").addEventListener("change", (e) => {
+  state.subtitleStyle.background = e.target.checked;
+  el("subtitle-bg-options").hidden = !e.target.checked;
+  applySubtitleOverlayStyle();
+});
+
+applySubtitleOverlayStyle();
+
 previewVideo.addEventListener("timeupdate", () => {
   if (!el("show-subtitle-checkbox").checked || state.transcriptSegments.length === 0) {
-    subtitleOverlay.textContent = "";
+    subtitleOverlay.innerHTML = "";
     return;
   }
   const t = previewVideo.currentTime;
   const active = state.transcriptSegments.find((s) => t >= s.start && t <= s.end);
-  subtitleOverlay.textContent = active ? active.text : "";
+  if (active) {
+    subtitleOverlay.innerHTML = "<span></span>";
+    subtitleOverlay.querySelector("span").textContent = active.text;
+    applySubtitleOverlayStyle();
+  } else {
+    subtitleOverlay.innerHTML = "";
+  }
 });
 
 el("download-vtt-btn").addEventListener("click", () => {
@@ -352,11 +425,21 @@ el("export-btn").addEventListener("click", async () => {
 
     progressText.textContent = "動画を書き出しています…";
     const ffmpeg = await getFFmpeg();
-    const finalData = await mixFinalAudio(ffmpeg, state.cutVideoBytes, options, (progress) => {
+    let finalData = await mixFinalAudio(ffmpeg, state.cutVideoBytes, options, (progress) => {
       const pct = Math.min(100, Math.max(0, Math.round(progress * 100)));
       progressFill.style.width = `${pct}%`;
       progressText.textContent = `書き出し中… ${pct}%`;
     });
+
+    if (el("burn-subtitle-checkbox").checked && state.transcriptSegments.length > 0) {
+      progressText.textContent = "字幕を焼き込んでいます…（動画の長さ分、時間がかかります）";
+      const mixedBlob = new Blob([finalData], { type: "video/mp4" });
+      finalData = await burnSubtitles(ffmpeg, mixedBlob, state.transcriptSegments, state.subtitleStyle, (fraction) => {
+        const pct = Math.min(100, Math.max(0, Math.round(fraction * 100)));
+        progressFill.style.width = `${pct}%`;
+        progressText.textContent = `字幕を焼き込み中… ${pct}%`;
+      });
+    }
 
     const blob = new Blob([finalData], { type: "video/mp4" });
     const url = URL.createObjectURL(blob);
