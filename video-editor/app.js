@@ -1,8 +1,8 @@
-import { detectSilenceKeepSegments, totalKeepDuration, computeWaveformPeaks } from "./silence.js";
-import { BGM_PRESETS, SFX_PRESETS, generateBgmBuffer, generateSfxBuffer, audioBufferToWav } from "./audio-gen.js";
-import { decodeToMono16k, transcribeAudio, buildVtt } from "./transcribe.js";
-import { getFFmpeg, cutSilenceSegments, mixFinalAudio } from "./ffmpeg-pipeline.js";
-import { burnSubtitles } from "./burn-subtitles.js";
+import { detectSilenceKeepSegments, totalKeepDuration, computeWaveformPeaks } from "./silence.js?v=3";
+import { BGM_PRESETS, SFX_PRESETS, generateBgmBuffer, generateSfxBuffer, audioBufferToWav } from "./audio-gen.js?v=3";
+import { decodeToMono16k, transcribeAudio, buildVtt } from "./transcribe.js?v=3";
+import { getFFmpeg, cutSilenceSegments, mixFinalAudio } from "./ffmpeg-pipeline.js?v=3";
+import { burnSubtitles } from "./burn-subtitles.js?v=3";
 
 const el = (id) => document.getElementById(id);
 
@@ -230,8 +230,9 @@ el("transcribe-btn").addEventListener("click", async () => {
   try {
     const blob = new Blob([state.cutVideoBytes], { type: "video/mp4" });
     const { samples } = await decodeToMono16k(await blob.arrayBuffer());
+    const modelId = el("transcribe-model-select").value;
 
-    const segments = await transcribeAudio(samples, (progress) => {
+    const segments = await transcribeAudio(samples, modelId, (progress) => {
       if (progress.status === "progress" && progress.total) {
         const pct = Math.round((progress.loaded / progress.total) * 100);
         progressFill.style.width = `${pct}%`;
