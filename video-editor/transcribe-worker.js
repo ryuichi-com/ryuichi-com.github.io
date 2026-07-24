@@ -32,10 +32,11 @@ self.onmessage = async (event) => {
     const output = await transcriber(event.data.samples, {
       language: "japanese",
       task: "transcribe",
-      // Word-level timestamps let the main thread regroup text into subtitle-length
-      // cues that break at punctuation, instead of being stuck with whisper's raw
-      // fixed-size chunk boundaries (which often cut mid-sentence).
-      return_timestamps: "word",
+      // NOTE: return_timestamps: "word" throws "Unsupported model type: whisper" in
+      // @xenova/transformers@2.17.2 — word-level timestamp extraction isn't wired up
+      // for whisper in this version, so every model fails identically. Chunk-level
+      // timestamps are the only mode that actually works for whisper here.
+      return_timestamps: true,
       chunk_length_s: 30,
       stride_length_s: 5,
     });
