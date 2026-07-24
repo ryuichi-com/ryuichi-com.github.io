@@ -1,8 +1,8 @@
-import { detectSilenceKeepSegments, totalKeepDuration, computeWaveformPeaks } from "./silence.js?v=4";
-import { BGM_PRESETS, SFX_PRESETS, generateBgmBuffer, generateSfxBuffer, audioBufferToWav } from "./audio-gen.js?v=4";
-import { decodeToMono16k, transcribeAudio, buildVtt } from "./transcribe.js?v=4";
-import { getFFmpeg, cutSilenceSegments, mixFinalAudio, splitVideoIntoChunks } from "./ffmpeg-pipeline.js?v=4";
-import { burnSubtitles } from "./burn-subtitles.js?v=4";
+import { detectSilenceKeepSegments, totalKeepDuration, computeWaveformPeaks } from "./silence.js?v=5";
+import { BGM_PRESETS, SFX_PRESETS, generateBgmBuffer, generateSfxBuffer, audioBufferToWav } from "./audio-gen.js?v=5";
+import { decodeToMono16k, transcribeAudio, buildVtt } from "./transcribe.js?v=5";
+import { getFFmpeg, cutSilenceSegments, mixFinalAudio, splitVideoIntoChunks } from "./ffmpeg-pipeline.js?v=5";
+import { burnSubtitles } from "./burn-subtitles.js?v=5";
 
 const el = (id) => document.getElementById(id);
 

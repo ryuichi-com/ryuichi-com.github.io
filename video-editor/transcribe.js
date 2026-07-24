@@ -7,7 +7,7 @@ let worker = null;
 // Doing this in a dedicated worker keeps the page responsive throughout.
 function getWorker() {
   if (!worker) {
-    worker = new Worker(new URL("./transcribe-worker.js?v=4", import.meta.url), { type: "module" });
+    worker = new Worker(new URL("./transcribe-worker.js?v=5", import.meta.url), { type: "module" });
   }
   return worker;
 }

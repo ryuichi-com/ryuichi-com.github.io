@@ -5,15 +5,12 @@ function hexToRgba(hex, alpha) {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-function wrapText(ctx, text, maxWidth) {
-  const hasSpaces = text.includes(" ");
-  const units = hasSpaces ? text.split(" ") : Array.from(text);
-  const sep = hasSpaces ? " " : "";
+function greedyWrap(ctx, units, sep, limit) {
   const lines = [];
   let current = "";
   for (const unit of units) {
     const test = current ? current + sep + unit : unit;
-    if (ctx.measureText(test).width > maxWidth && current) {
+    if (ctx.measureText(test).width > limit && current) {
       lines.push(current);
       current = unit;
     } else {
@@ -22,6 +19,28 @@ function wrapText(ctx, text, maxWidth) {
   }
   if (current) lines.push(current);
   return lines;
+}
+
+function wrapText(ctx, text, maxWidth) {
+  const hasSpaces = text.includes(" ");
+  const units = hasSpaces ? text.split(" ") : Array.from(text);
+  const sep = hasSpaces ? " " : "";
+
+  const initialLines = greedyWrap(ctx, units, sep, maxWidth);
+  if (initialLines.length <= 1) return initialLines;
+
+  // Greedy wrapping packs each line as full as possible before overflowing, which
+  // tends to leave a very short "orphan" final line (e.g. a single trailing kana +
+  // punctuation) once the rest of the text has been front-loaded. Re-wrapping at a
+  // narrower width — sized so the same line count divides the text's total width
+  // roughly evenly — produces visually balanced lines instead of one long line
+  // followed by a near-empty one.
+  const sepWidth = hasSpaces ? ctx.measureText(sep).width : 0;
+  const totalWidth =
+    units.reduce((sum, u) => sum + ctx.measureText(u).width, 0) + sepWidth * (units.length - 1);
+  const targetWidth = Math.min(maxWidth, Math.ceil(totalWidth / initialLines.length) + sepWidth + 2);
+  const balanced = greedyWrap(ctx, units, sep, targetWidth);
+  return balanced.length <= initialLines.length ? balanced : initialLines;
 }
 
 export function drawSubtitleFrame(ctx, text, width, height, style) {
@@ -149,13 +168,43 @@ export async function burnSubtitles(ffmpeg, videoBlob, segments, style, onProgre
     }, 1000 / 30);
   }
 
-  recorder.start();
-  videoEl.currentTime = 0;
-  await videoEl.play();
+  // When the tab is backgrounded (user switches away, minimizes the window) for a
+  // stretch during a long export, Chromium throttles/suspends actual video decode for
+  // the hidden page while the Web Audio graph keeps running largely unthrottled (it's
+  // specifically exempted to avoid audible glitches). Left alone, that produces a
+  // recording where video freezes on the last decoded frame for however long the tab
+  // was hidden while audio keeps advancing underneath it — a growing desync, not just
+  // a brief freeze. Explicitly pausing playback (which pauses both the video and, via
+  // the media-element-sourced audio graph, its audio output) the moment the page goes
+  // hidden — and resuming both together once it's visible again — keeps video and
+  // audio locked in step: the output gets a clean freeze-frame pause instead of a
+  // growing drift, and total wall-clock time simply stretches by however long the tab
+  // was hidden.
+  let backgroundPaused = false;
+  function handleVisibilityChange() {
+    if (document.hidden) {
+      if (!videoEl.paused) {
+        videoEl.pause();
+        backgroundPaused = true;
+      }
+    } else if (backgroundPaused) {
+      backgroundPaused = false;
+      videoEl.play().catch(() => {});
+    }
+  }
+  document.addEventListener("visibilitychange", handleVisibilityChange);
 
-  await new Promise((resolve) => {
-    videoEl.onended = resolve;
-  });
+  try {
+    recorder.start();
+    videoEl.currentTime = 0;
+    await videoEl.play();
+
+    await new Promise((resolve) => {
+      videoEl.onended = resolve;
+    });
+  } finally {
+    document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }
   framesDone = true;
   if (intervalId) clearInterval(intervalId);
   recorder.stop();
