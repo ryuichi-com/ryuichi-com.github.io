@@ -227,26 +227,53 @@ el("transcribe-btn").addEventListener("click", async () => {
   const tickTimer = setInterval(updateDisplay, 1000);
   updateDisplay();
 
+  const MODEL_FALLBACK_ORDER = ["Xenova/whisper-medium", "Xenova/whisper-small", "Xenova/whisper-base"];
+
+  function isResourceError(message) {
+    return /OrtRun|memory|out of bounds|allocat/i.test(message);
+  }
+
   try {
     const blob = new Blob([state.cutVideoBytes], { type: "video/mp4" });
     const { samples } = await decodeToMono16k(await blob.arrayBuffer());
-    const modelId = el("transcribe-model-select").value;
+    const requestedModelId = el("transcribe-model-select").value;
 
-    const segments = await transcribeAudio(samples, modelId, (progress) => {
-      if (progress.status === "progress" && progress.total) {
-        const pct = Math.round((progress.loaded / progress.total) * 100);
-        progressFill.style.width = `${pct}%`;
-        stageText = `モデルをダウンロード中… ${pct}%`;
-      } else if (progress.status === "initiate") {
-        stageText = "モデルファイルを確認しています…";
-      } else if (progress.status === "ready" || progress.status === "done") {
-        progressFill.style.width = "100%";
-        stageText = "文字起こし処理中です。動画の長さによっては数分かかります…";
-      } else if (progress.status) {
-        stageText = "準備中です…";
+    const startIndex = MODEL_FALLBACK_ORDER.indexOf(requestedModelId);
+    const modelChain = startIndex >= 0 ? MODEL_FALLBACK_ORDER.slice(startIndex) : [requestedModelId];
+
+    let segments = null;
+    let lastErr = null;
+    for (let i = 0; i < modelChain.length; i++) {
+      const modelId = modelChain[i];
+      try {
+        segments = await transcribeAudio(samples, modelId, (progress) => {
+          if (progress.status === "progress" && progress.total) {
+            const pct = Math.round((progress.loaded / progress.total) * 100);
+            progressFill.style.width = `${pct}%`;
+            stageText = `モデルをダウンロード中… ${pct}%`;
+          } else if (progress.status === "initiate") {
+            stageText = "モデルファイルを確認しています…";
+          } else if (progress.status === "ready" || progress.status === "done") {
+            progressFill.style.width = "100%";
+            stageText = "文字起こし処理中です。動画の長さによっては数分かかります…";
+          } else if (progress.status) {
+            stageText = "準備中です…";
+          }
+          updateDisplay();
+        });
+        break;
+      } catch (err) {
+        lastErr = err;
+        const message = errorMessage(err);
+        const hasNextModel = i < modelChain.length - 1;
+        if (!isResourceError(message) || !hasNextModel) throw err;
+        console.warn(`transcription failed with ${modelId}, falling back to ${modelChain[i + 1]}:`, err);
+        stageText = `${modelId}での処理に失敗したため、より軽いモデルに切り替えています…`;
+        updateDisplay();
       }
-      updateDisplay();
-    });
+    }
+
+    if (!segments) throw lastErr;
 
     clearInterval(tickTimer);
     progressText.textContent = "文字起こし完了！";
@@ -257,7 +284,10 @@ el("transcribe-btn").addEventListener("click", async () => {
   } catch (err) {
     clearInterval(tickTimer);
     console.error(err);
-    progressText.textContent = `エラーが発生しました: ${errorMessage(err)}`;
+    const message = errorMessage(err);
+    progressText.textContent = isResourceError(message)
+      ? `エラーが発生しました: ${message}（モデルが重すぎる可能性があります。精度を「標準」に下げてもう一度お試しください）`
+      : `エラーが発生しました: ${message}`;
   } finally {
     btn.disabled = false;
   }
