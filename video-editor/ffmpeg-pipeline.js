@@ -35,17 +35,37 @@ export async function getFFmpeg(onLog) {
   return loadPromise;
 }
 
-function extensionFromFile(file) {
-  const name = file.name || "";
-  const match = name.match(/\.([a-zA-Z0-9]+)$/);
-  return match ? match[1].toLowerCase() : "mp4";
-}
-
 async function tryDeleteFile(ffmpeg, name) {
   try {
     await ffmpeg.deleteFile(name);
   } catch {
     // ignore, file may not exist
+  }
+}
+
+const INPUT_MOUNT_DIR = "/input_mount";
+
+// Writing the whole source file into ffmpeg's regular (in-memory) filesystem means its
+// entire byte size sits in the WASM heap for as long as it's needed. For a long video
+// (hundreds of MB) that alone can exhaust the heap and crash with "memory access out of
+// bounds" before any segment work even finishes. Mounting it as a WORKERFS instead lets
+// ffmpeg read directly from the browser's File object on demand (via lazy Blob reads),
+// so only the parts actually being read at any moment need to be resident.
+async function mountInputFile(ffmpeg, videoFile) {
+  try {
+    await ffmpeg.createDir(INPUT_MOUNT_DIR);
+  } catch {
+    // directory may already exist from a previous run in this session
+  }
+  await ffmpeg.mount("WORKERFS", { files: [videoFile] }, INPUT_MOUNT_DIR);
+  return `${INPUT_MOUNT_DIR}/${videoFile.name}`;
+}
+
+async function unmountInputFile(ffmpeg) {
+  try {
+    await ffmpeg.unmount(INPUT_MOUNT_DIR);
+  } catch {
+    // ignore, may not be mounted
   }
 }
 
@@ -113,11 +133,6 @@ async function cutSilenceSegmentsFast(ffmpeg, inputName, keepSegments, onProgres
       if (onProgress) onProgress(((i + 1) / (keepSegments.length + 1)) * 0.8);
     }
 
-    // Free the (potentially very large) source file before assembling the output —
-    // it's not needed anymore, and holding it alongside every segment file is the
-    // single biggest avoidable chunk of peak memory use.
-    await tryDeleteFile(ffmpeg, inputName);
-
     await concatFilesInBatches(ffmpeg, segmentNames, outputName);
     if (onProgress) onProgress(1);
 
@@ -169,27 +184,18 @@ async function cutSilenceSegmentsReencode(ffmpeg, inputName, keepSegments, onPro
 }
 
 export async function cutSilenceSegments(ffmpeg, videoFile, keepSegments, onProgress) {
-  const inputExt = extensionFromFile(videoFile);
-  const inputName = `input.${inputExt}`;
-
-  // ffmpeg.writeFile() transfers the underlying ArrayBuffer to the worker (it becomes
-  // detached afterwards), so a fresh Uint8Array has to be read for each write — the one
-  // passed to the first writeFile() call below cannot be reused for the fallback path.
-  await ffmpeg.writeFile(inputName, new Uint8Array(await videoFile.arrayBuffer()));
+  const inputName = await mountInputFile(ffmpeg, videoFile);
 
   let data;
   try {
     data = await cutSilenceSegmentsFast(ffmpeg, inputName, keepSegments, onProgress);
   } catch (err) {
     console.warn("stream-copy cut failed, falling back to re-encode:", err);
-    // The fast path may have already deleted the input file (to free memory) before
-    // failing later on, so re-write it.
-    await tryDeleteFile(ffmpeg, inputName);
-    await ffmpeg.writeFile(inputName, new Uint8Array(await videoFile.arrayBuffer()));
     data = await cutSilenceSegmentsReencode(ffmpeg, inputName, keepSegments, onProgress);
+  } finally {
+    await unmountInputFile(ffmpeg);
   }
 
-  await tryDeleteFile(ffmpeg, inputName);
   return data;
 }
 
