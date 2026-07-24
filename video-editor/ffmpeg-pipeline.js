@@ -49,6 +49,42 @@ async function tryDeleteFile(ffmpeg, name) {
   }
 }
 
+// Joins many small mp4 files with the concat demuxer (stream copy). Merging is done in
+// batches and each batch's inputs are deleted as soon as they're folded into an
+// intermediate file, so at most `batchSize` segment files are ever resident in ffmpeg's
+// in-memory filesystem at once — holding all of them (potentially hundreds of MB for a
+// long video) until one final concat call risks exhausting the WASM heap.
+async function concatFilesInBatches(ffmpeg, fileNames, outputName, batchSize = 16) {
+  let currentNames = fileNames;
+  let round = 0;
+  while (currentNames.length > 1) {
+    const nextNames = [];
+    for (let i = 0; i < currentNames.length; i += batchSize) {
+      const batch = currentNames.slice(i, i + batchSize);
+      if (batch.length === 1) {
+        nextNames.push(batch[0]);
+        continue;
+      }
+      const mergedName = `merge-r${round}-${i}.mp4`;
+      const listContent = batch.map((name) => `file '${name}'`).join("\n");
+      await ffmpeg.writeFile("concat-list.txt", listContent);
+      await ffmpeg.exec(["-f", "concat", "-safe", "0", "-i", "concat-list.txt", "-c", "copy", mergedName]);
+      for (const name of batch) await tryDeleteFile(ffmpeg, name);
+      nextNames.push(mergedName);
+    }
+    currentNames = nextNames;
+    round += 1;
+  }
+  await tryDeleteFile(ffmpeg, "concat-list.txt");
+
+  const [finalName] = currentNames;
+  if (finalName !== outputName) {
+    const data = await ffmpeg.readFile(finalName);
+    await ffmpeg.writeFile(outputName, data);
+    await tryDeleteFile(ffmpeg, finalName);
+  }
+}
+
 // Extracts each kept segment with stream copy (no decode/encode, just a fast
 // keyframe-aligned cut) and joins them with the concat demuxer, which is also stream
 // copy. This only works when the source codecs are compatible with an mp4 container
@@ -74,12 +110,15 @@ async function cutSilenceSegmentsFast(ffmpeg, inputName, keepSegments, onProgres
         segName,
       ]);
       segmentNames.push(segName);
-      if (onProgress) onProgress((i + 1) / (keepSegments.length + 1));
+      if (onProgress) onProgress(((i + 1) / (keepSegments.length + 1)) * 0.8);
     }
 
-    const listContent = segmentNames.map((name) => `file '${name}'`).join("\n");
-    await ffmpeg.writeFile("concat-list.txt", listContent);
-    await ffmpeg.exec(["-f", "concat", "-safe", "0", "-i", "concat-list.txt", "-c", "copy", outputName]);
+    // Free the (potentially very large) source file before assembling the output —
+    // it's not needed anymore, and holding it alongside every segment file is the
+    // single biggest avoidable chunk of peak memory use.
+    await tryDeleteFile(ffmpeg, inputName);
+
+    await concatFilesInBatches(ffmpeg, segmentNames, outputName);
     if (onProgress) onProgress(1);
 
     return await ffmpeg.readFile(outputName);
@@ -133,14 +172,20 @@ export async function cutSilenceSegments(ffmpeg, videoFile, keepSegments, onProg
   const inputExt = extensionFromFile(videoFile);
   const inputName = `input.${inputExt}`;
 
-  const buf = new Uint8Array(await videoFile.arrayBuffer());
-  await ffmpeg.writeFile(inputName, buf);
+  // ffmpeg.writeFile() transfers the underlying ArrayBuffer to the worker (it becomes
+  // detached afterwards), so a fresh Uint8Array has to be read for each write — the one
+  // passed to the first writeFile() call below cannot be reused for the fallback path.
+  await ffmpeg.writeFile(inputName, new Uint8Array(await videoFile.arrayBuffer()));
 
   let data;
   try {
     data = await cutSilenceSegmentsFast(ffmpeg, inputName, keepSegments, onProgress);
   } catch (err) {
     console.warn("stream-copy cut failed, falling back to re-encode:", err);
+    // The fast path may have already deleted the input file (to free memory) before
+    // failing later on, so re-write it.
+    await tryDeleteFile(ffmpeg, inputName);
+    await ffmpeg.writeFile(inputName, new Uint8Array(await videoFile.arrayBuffer()));
     data = await cutSilenceSegmentsReencode(ffmpeg, inputName, keepSegments, onProgress);
   }
 
@@ -151,7 +196,11 @@ export async function cutSilenceSegments(ffmpeg, videoFile, keepSegments, onProg
 export async function mixFinalAudio(ffmpeg, cutVideoBytes, options, onProgress) {
   const { bgmBytes, bgmExt = "wav", bgmVolume = 0.2, sfxBytes, sfxTimes = [], durationSeconds } = options;
 
-  await ffmpeg.writeFile("cut.mp4", cutVideoBytes);
+  // ffmpeg.writeFile() detaches the underlying ArrayBuffer of whatever is passed to it.
+  // cutVideoBytes is held onto by the caller across possibly several export attempts
+  // (e.g. re-exporting after changing BGM), so it must be copied rather than written
+  // directly, or the second attempt would fail with a DataCloneError.
+  await ffmpeg.writeFile("cut.mp4", new Uint8Array(cutVideoBytes));
 
   const inputs = ["-i", "cut.mp4"];
   let nextInputIndex = 1;

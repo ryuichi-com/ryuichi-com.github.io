@@ -34,6 +34,16 @@ const SUBTITLE_COLOR_PRESETS = [
   { id: "black", label: "黒", color: "#000000", strokeColor: "#ffffff" },
 ];
 
+function errorMessage(err) {
+  if (err instanceof Error) return err.message;
+  if (typeof err === "string") return err;
+  try {
+    return JSON.stringify(err);
+  } catch {
+    return String(err);
+  }
+}
+
 function setStepEnabled(sectionId, enabled) {
   el(sectionId).dataset.disabled = enabled ? "false" : "true";
 }
@@ -179,7 +189,7 @@ el("apply-cut-btn").addEventListener("click", async () => {
     setStepEnabled("step-export", true);
   } catch (err) {
     console.error(err);
-    progressText.textContent = `エラーが発生しました: ${err.message}`;
+    progressText.textContent = `エラーが発生しました: ${errorMessage(err)}`;
   } finally {
     btn.disabled = false;
   }
@@ -219,7 +229,7 @@ el("transcribe-btn").addEventListener("click", async () => {
     el("burn-subtitle-checkbox").disabled = false;
   } catch (err) {
     console.error(err);
-    progressText.textContent = `エラーが発生しました: ${err.message}`;
+    progressText.textContent = `エラーが発生しました: ${errorMessage(err)}`;
   } finally {
     btn.disabled = false;
   }
@@ -499,7 +509,7 @@ el("export-btn").addEventListener("click", async () => {
     progressText.textContent = "書き出し完了！";
   } catch (err) {
     console.error(err);
-    progressText.textContent = `エラーが発生しました: ${err.message}`;
+    progressText.textContent = `エラーが発生しました: ${errorMessage(err)}`;
   } finally {
     btn.disabled = false;
   }
