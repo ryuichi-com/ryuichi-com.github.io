@@ -14,6 +14,8 @@ const state = {
   cutDurationSeconds: 0,
   transcriptSegments: [],
   bgmFile: null,
+  cutPointTimes: [],
+  selectedCutPoints: new Set(),
   subtitleStyle: {
     color: "#ffffff",
     strokeColor: "#000000",
@@ -26,12 +28,18 @@ const state = {
   },
 };
 
+// Every preset pairs a bright fill color with a black outline (never the reverse).
+// Video content is unpredictable — sometimes bright, sometimes dark — and a dark
+// outline is what reliably keeps text readable against either, the way professional
+// captions and top YouTube channels do it. A light outline (e.g. around dark text)
+// looks fine in isolation but all but disappears over a bright frame, which is the
+// same problem the red/white-outline preset had.
 const SUBTITLE_COLOR_PRESETS = [
   { id: "white", label: "白", color: "#ffffff", strokeColor: "#000000" },
   { id: "yellow", label: "黄", color: "#ffe600", strokeColor: "#000000" },
   { id: "cyan", label: "水色", color: "#4de8ff", strokeColor: "#000000" },
-  { id: "red", label: "赤", color: "#ff3b30", strokeColor: "#ffffff" },
-  { id: "black", label: "黒", color: "#000000", strokeColor: "#ffffff" },
+  { id: "green", label: "緑", color: "#4dff88", strokeColor: "#000000" },
+  { id: "red", label: "赤", color: "#ff6259", strokeColor: "#000000" },
 ];
 
 function errorMessage(err) {
@@ -179,6 +187,9 @@ el("apply-cut-btn").addEventListener("click", async () => {
 
     state.cutVideoBytes = data;
     state.cutDurationSeconds = totalKeepDuration(state.keepSegments);
+    state.cutPointTimes = computeCutPointTimes(state.keepSegments);
+    state.selectedCutPoints = new Set();
+    renderCutPointList();
 
     const blob = new Blob([data], { type: "video/mp4" });
     previewVideo.src = URL.createObjectURL(blob);
@@ -206,7 +217,15 @@ el("transcribe-btn").addEventListener("click", async () => {
   const progressFill = el("model-progress-fill");
   const progressText = el("model-progress-text");
   progressWrap.hidden = false;
-  progressText.textContent = "モデルを読み込んでいます…";
+
+  const startedAt = Date.now();
+  let stageText = "準備を開始しています…";
+  const updateDisplay = () => {
+    const elapsedSec = Math.round((Date.now() - startedAt) / 1000);
+    progressText.textContent = `${stageText}（経過: ${elapsedSec}秒）`;
+  };
+  const tickTimer = setInterval(updateDisplay, 1000);
+  updateDisplay();
 
   try {
     const blob = new Blob([state.cutVideoBytes], { type: "video/mp4" });
@@ -216,18 +235,26 @@ el("transcribe-btn").addEventListener("click", async () => {
       if (progress.status === "progress" && progress.total) {
         const pct = Math.round((progress.loaded / progress.total) * 100);
         progressFill.style.width = `${pct}%`;
-        progressText.textContent = `モデルを読み込み中… ${pct}% (${progress.file || ""})`;
+        stageText = `モデルをダウンロード中… ${pct}%`;
+      } else if (progress.status === "initiate") {
+        stageText = "モデルファイルを確認しています…";
+      } else if (progress.status === "ready" || progress.status === "done") {
+        progressFill.style.width = "100%";
+        stageText = "文字起こし処理中です。動画の長さによっては数分かかります…";
       } else if (progress.status) {
-        progressText.textContent = `準備中: ${progress.status}`;
+        stageText = "準備中です…";
       }
+      updateDisplay();
     });
 
+    clearInterval(tickTimer);
     progressText.textContent = "文字起こし完了！";
     state.transcriptSegments = segments;
     renderTranscriptList(segments);
     el("download-vtt-btn").disabled = false;
     el("burn-subtitle-checkbox").disabled = false;
   } catch (err) {
+    clearInterval(tickTimer);
     console.error(err);
     progressText.textContent = `エラーが発生しました: ${errorMessage(err)}`;
   } finally {
@@ -404,6 +431,50 @@ el("sfx-enable-checkbox").addEventListener("change", (e) => {
   el("sfx-options").hidden = !e.target.checked;
 });
 
+function renderCutPointList() {
+  const listEl = el("cutpoint-list");
+  listEl.innerHTML = "";
+  state.cutPointTimes.forEach((time, i) => {
+    const row = document.createElement("div");
+    row.className = "cutpoint-row";
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = state.selectedCutPoints.has(i);
+    checkbox.addEventListener("change", () => {
+      if (checkbox.checked) state.selectedCutPoints.add(i);
+      else state.selectedCutPoints.delete(i);
+    });
+
+    const label = document.createElement("span");
+    label.className = "time";
+    label.textContent = `カット箇所 ${i + 1}（${time.toFixed(1)}秒付近）`;
+
+    const previewBtn = document.createElement("button");
+    previewBtn.type = "button";
+    previewBtn.className = "btn small";
+    previewBtn.textContent = "▶ プレビュー";
+    previewBtn.addEventListener("click", () => {
+      previewVideo.currentTime = Math.max(0, time - 1.5);
+      previewVideo.play();
+    });
+
+    row.appendChild(checkbox);
+    row.appendChild(label);
+    row.appendChild(previewBtn);
+    listEl.appendChild(row);
+  });
+}
+
+el("sfx-select-all-btn").addEventListener("click", () => {
+  state.cutPointTimes.forEach((_, i) => state.selectedCutPoints.add(i));
+  renderCutPointList();
+});
+el("sfx-select-none-btn").addEventListener("click", () => {
+  state.selectedCutPoints.clear();
+  renderCutPointList();
+});
+
 document.querySelectorAll('input[name="bgm-source"]').forEach((radio) => {
   radio.addEventListener("change", () => {
     const useUpload = document.querySelector('input[name="bgm-source"]:checked').value === "upload";
@@ -439,14 +510,14 @@ el("sfx-preview-btn").addEventListener("click", async () => {
 
 // ---------- Step 5: export ----------
 
-function computeSfxTimes(keepSegments) {
+function computeCutPointTimes(keepSegments) {
   const times = [];
   let acc = 0;
   for (let i = 0; i < keepSegments.length; i++) {
     acc += keepSegments[i].end - keepSegments[i].start;
     if (i < keepSegments.length - 1) times.push(acc);
   }
-  return times.slice(0, 20);
+  return times;
 }
 
 el("export-btn").addEventListener("click", async () => {
@@ -475,11 +546,14 @@ el("export-btn").addEventListener("click", async () => {
       options.bgmVolume = Number(el("bgm-volume-slider").value);
     }
 
-    if (el("sfx-enable-checkbox").checked) {
+    if (el("sfx-enable-checkbox").checked && state.selectedCutPoints.size > 0) {
       progressText.textContent = "効果音を生成しています…";
       const buffer = await generateSfxBuffer(sfxPresetSelect.value);
       options.sfxBytes = audioBufferToWav(buffer);
-      options.sfxTimes = computeSfxTimes(state.keepSegments);
+      options.sfxTimes = Array.from(state.selectedCutPoints)
+        .sort((a, b) => a - b)
+        .map((i) => state.cutPointTimes[i])
+        .slice(0, 20);
     }
 
     progressText.textContent = "動画を書き出しています…";
