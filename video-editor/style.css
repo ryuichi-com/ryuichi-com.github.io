@@ -265,6 +265,58 @@ input[type="range"] {
   transition: width 0.2s;
 }
 
+.split-panel {
+  background: #f7f8fc;
+  border: 1px solid #e0e3f0;
+  border-radius: 8px;
+  padding: 16px;
+  margin-top: 16px;
+}
+
+.chunk-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.chunk-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid #e6e8f0;
+  border-radius: 8px;
+  flex-wrap: wrap;
+}
+
+.chunk-row.active {
+  border-color: #4a6cf7;
+  background: #f5f7ff;
+}
+
+.chunk-row .chunk-label {
+  font-weight: bold;
+  min-width: 160px;
+}
+
+.chunk-row .chunk-status {
+  font-size: 13px;
+  padding: 2px 10px;
+  border-radius: 12px;
+  background: #eceff8;
+  color: #555;
+}
+
+.chunk-row .chunk-status.done {
+  background: #dcf6e3;
+  color: #1f7a3d;
+}
+
+.chunk-row .chunk-status.active {
+  background: #dde4ff;
+  color: #33459b;
+}
+
 .transcript-list {
   max-height: 260px;
   overflow-y: auto;
