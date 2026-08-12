@@ -43,6 +43,46 @@ async function tryDeleteFile(ffmpeg, name) {
   }
 }
 
+// ffmpeg.exec() does NOT throw/reject when the ffmpeg command itself fails (an
+// incompatible stream copy, an invalid -map, etc.) — per @ffmpeg/ffmpeg's own type
+// signature it resolves with a plain exit code, 0 for success and non-zero for any
+// error, and every call site in this file used to just await it and assume success.
+// That's the actual root cause behind more than one "ffmpeg silently produced a broken
+// file" bug found in this pipeline (an empty segment, a video track quietly dropped by
+// a "-map" that didn't match anything) — the failures were never silent at the ffmpeg
+// level, just never checked. Every exec() that must succeed for the pipeline to be
+// correct should go through this wrapper instead of calling ffmpeg.exec() directly.
+async function execChecked(ffmpeg, args) {
+  const code = await ffmpeg.exec(args);
+  if (code !== 0) {
+    throw new Error(`ffmpegコマンドが失敗しました（終了コード ${code}）: ${args.join(" ")}`);
+  }
+  return code;
+}
+
+// ffmpeg.wasm's exec() can "succeed" while still producing a file that's missing a
+// stream it should have (e.g. the video track silently dropped during a stream copy),
+// without throwing or leaving the file empty — the same kind of silent failure already
+// seen with fully-empty outputs, just partial instead of total. `-i <file>` with no
+// output makes ffmpeg print the input's stream list and then abort (since no output was
+// given), so capturing that log output is a cheap way to confirm a video stream is
+// actually present before handing bytes back to the caller for download.
+async function hasVideoStream(ffmpeg, fileName) {
+  const lines = [];
+  const onLog = ({ message }) => lines.push(message);
+  ffmpeg.on("log", onLog);
+  try {
+    await ffmpeg.exec(["-i", fileName]);
+  } catch {
+    // expected: ffmpeg always errors here since no output file was specified
+  } finally {
+    ffmpeg.off("log", onLog);
+  }
+  const inputStart = lines.findIndex((l) => l.includes(`from '${fileName}'`));
+  const relevant = inputStart >= 0 ? lines.slice(inputStart) : lines;
+  return relevant.some((l) => /Stream #\d+:\d+.*: Video:/.test(l));
+}
+
 const INPUT_MOUNT_DIR = "/input_mount";
 
 // Writing the whole source file into ffmpeg's regular (in-memory) filesystem means its
@@ -88,7 +128,7 @@ async function concatFilesInBatches(ffmpeg, fileNames, outputName, batchSize = 1
       const mergedName = `merge-r${round}-${i}.mp4`;
       const listContent = batch.map((name) => `file '${name}'`).join("\n");
       await ffmpeg.writeFile("concat-list.txt", listContent);
-      await ffmpeg.exec(["-f", "concat", "-safe", "0", "-i", "concat-list.txt", "-c", "copy", mergedName]);
+      await execChecked(ffmpeg, ["-f", "concat", "-safe", "0", "-i", "concat-list.txt", "-c", "copy", mergedName]);
       for (const name of batch) await tryDeleteFile(ffmpeg, name);
       nextNames.push(mergedName);
     }
@@ -133,7 +173,7 @@ async function extractSegmentsBatch(ffmpeg, inputName, segments, startIndex) {
     );
     segmentNames.push(segName);
   });
-  await ffmpeg.exec(args);
+  await execChecked(ffmpeg, args);
 
   // ffmpeg.exec() does not reject when a stream-copy mux is incompatible (e.g. muxing
   // VP8 into an mp4 container) — it can exit "successfully" having written empty
@@ -196,7 +236,7 @@ async function cutSilenceSegmentsReencode(ffmpeg, inputName, keepSegments, onPro
 
   if (onProgress) ffmpeg.on("progress", ({ progress }) => onProgress(progress));
 
-  await ffmpeg.exec([
+  await execChecked(ffmpeg, [
     "-i",
     inputName,
     "-filter_complex",
@@ -245,7 +285,7 @@ export async function splitVideoIntoChunks(ffmpeg, videoFile, totalDurationSec, 
         for (let offset = 0; offset < batch.length; offset++) {
           const seg = batch[offset];
           const name = `seg${i + offset}.mp4`;
-          await ffmpeg.exec([
+          await execChecked(ffmpeg, [
             "-i",
             inputName,
             "-ss",
@@ -284,6 +324,16 @@ export async function cutSilenceSegments(ffmpeg, videoFile, keepSegments, onProg
   let data;
   try {
     data = await cutSilenceSegmentsFast(ffmpeg, inputName, keepSegments, onProgress);
+    // The stream-copy fast path can silently drop the video track on some inputs even
+    // when every individual exec() call "succeeds" and produces non-empty files (see
+    // extractSegmentsBatch's empty-file check above for the same failure class) — check
+    // the concatenated result actually still has a video stream before trusting it.
+    await ffmpeg.writeFile("cut-verify.mp4", new Uint8Array(data));
+    const ok = await hasVideoStream(ffmpeg, "cut-verify.mp4");
+    await tryDeleteFile(ffmpeg, "cut-verify.mp4");
+    if (!ok) {
+      throw new Error("stream-copy cut result is missing its video stream");
+    }
   } catch (err) {
     console.warn("stream-copy cut failed, falling back to re-encode:", err);
     data = await cutSilenceSegmentsReencode(ffmpeg, inputName, keepSegments, onProgress);
@@ -346,27 +396,50 @@ export async function mixFinalAudio(ffmpeg, cutVideoBytes, options, onProgress) 
     });
   }
 
-  if (mixParts.length === 1) {
-    await ffmpeg.exec(["-i", "cut.mp4", "-c", "copy", "final.mp4"]);
-  } else {
-    filterChain.push(`${mixParts.join("")}amix=inputs=${mixParts.length}:duration=first:dropout_transition=0[outa]`);
-    const filterComplex = filterChain.join(";");
-    await ffmpeg.exec([
-      ...inputs,
-      "-filter_complex",
-      filterComplex,
-      "-map",
-      "0:v",
-      "-map",
-      "[outa]",
-      "-c:v",
-      "copy",
-      "-c:a",
-      "aac",
-      "final.mp4",
-    ]);
+  // Video is always copied (-c:v copy), never re-encoded, in the primary attempt below
+  // — re-encoding a video track that's already fine on every export would be needlessly
+  // slow. A stream copy can fail on some inputs (an incompatible codec, or an explicit
+  // "-map" that doesn't resolve — e.g. "cut.mp4" unexpectedly missing a video track);
+  // execChecked() turns that into a real, catchable error (ffmpeg does exit non-zero
+  // for a "-map" matching nothing) instead of the exec() call being silently trusted.
+  // hasVideoStream() is a second, independent check on top of that: it confirms the
+  // output file itself still has a video stream rather than relying solely on the exit
+  // code, in case some other stream-copy failure mode doesn't surface as a non-zero
+  // exit (as seen with the empty-segment bug above, before this file's own -map fix).
+  // Either check failing falls back to re-encoding the video track.
+  async function runMix(videoCodecArgs) {
+    if (mixParts.length === 1) {
+      await execChecked(ffmpeg, ["-i", "cut.mp4", "-map", "0:v:0", "-map", "0:a:0", ...videoCodecArgs, "-c:a", "copy", "final.mp4"]);
+    } else {
+      filterChain.push(`${mixParts.join("")}amix=inputs=${mixParts.length}:duration=first:dropout_transition=0[outa]`);
+      const filterComplex = filterChain.join(";");
+      await execChecked(ffmpeg, [
+        ...inputs,
+        "-filter_complex",
+        filterComplex,
+        "-map",
+        "0:v",
+        "-map",
+        "[outa]",
+        ...videoCodecArgs,
+        "-c:a",
+        "aac",
+        "final.mp4",
+      ]);
+      filterChain.pop();
+    }
   }
 
-  const data = await ffmpeg.readFile("final.mp4");
-  return data;
+  try {
+    await runMix(["-c:v", "copy"]);
+    if (!(await hasVideoStream(ffmpeg, "final.mp4"))) {
+      throw new Error("stream copy produced an output with no video stream");
+    }
+  } catch (err) {
+    console.warn("stream-copy export failed, falling back to re-encode:", err);
+    await tryDeleteFile(ffmpeg, "final.mp4");
+    await runMix(["-c:v", "libx264", "-preset", "ultrafast", "-crf", "23"]);
+  }
+
+  return ffmpeg.readFile("final.mp4");
 }
