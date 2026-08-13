@@ -60,14 +60,16 @@ async function execChecked(ffmpeg, args) {
   return code;
 }
 
-// ffmpeg.wasm's exec() can "succeed" while still producing a file that's missing a
-// stream it should have (e.g. the video track silently dropped during a stream copy),
-// without throwing or leaving the file empty — the same kind of silent failure already
-// seen with fully-empty outputs, just partial instead of total. `-i <file>` with no
-// output makes ffmpeg print the input's stream list and then abort (since no output was
-// given), so capturing that log output is a cheap way to confirm a video stream is
-// actually present before handing bytes back to the caller for download.
-async function hasVideoStream(ffmpeg, fileName) {
+// ffmpeg.wasm's exec() can "succeed" while still producing a file that's structurally
+// broken in ways that don't show up as a non-zero exit code or an empty file — a stream
+// silently dropped during a copy, or (seen when concatenating many stream-copied
+// segments) the container's own duration/timestamps ending up wildly inflated relative
+// to the actual content, which manifests downstream as frozen video, missing audio, or
+// both, well after the export step reported success. `-i <file>` with no output makes
+// ffmpeg print the input's stream list and duration and then abort (since no output was
+// given), so capturing that log output is a cheap way to check both before handing
+// bytes back to a caller.
+async function probeFile(ffmpeg, fileName) {
   const lines = [];
   const onLog = ({ message }) => lines.push(message);
   ffmpeg.on("log", onLog);
@@ -80,7 +82,17 @@ async function hasVideoStream(ffmpeg, fileName) {
   }
   const inputStart = lines.findIndex((l) => l.includes(`from '${fileName}'`));
   const relevant = inputStart >= 0 ? lines.slice(inputStart) : lines;
-  return relevant.some((l) => /Stream #\d+:\d+.*: Video:/.test(l));
+  const hasVideo = relevant.some((l) => /Stream #\d+:\d+.*: Video:/.test(l));
+  const durationLine = relevant.find((l) => /^\s*Duration:/.test(l));
+  const durationMatch = durationLine && durationLine.match(/Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)/);
+  const durationSeconds = durationMatch
+    ? parseInt(durationMatch[1]) * 3600 + parseInt(durationMatch[2]) * 60 + parseFloat(durationMatch[3])
+    : null;
+  return { hasVideo, durationSeconds };
+}
+
+async function hasVideoStream(ffmpeg, fileName) {
+  return (await probeFile(ffmpeg, fileName)).hasVideo;
 }
 
 const INPUT_MOUNT_DIR = "/input_mount";
@@ -320,19 +332,35 @@ export async function splitVideoIntoChunks(ffmpeg, videoFile, totalDurationSec, 
 
 export async function cutSilenceSegments(ffmpeg, videoFile, keepSegments, onProgress) {
   const inputName = await mountInputFile(ffmpeg, videoFile);
+  const expectedDuration = keepSegments.reduce((sum, seg) => sum + (seg.end - seg.start), 0);
 
   let data;
   try {
     data = await cutSilenceSegmentsFast(ffmpeg, inputName, keepSegments, onProgress);
     // The stream-copy fast path can silently drop the video track on some inputs even
     // when every individual exec() call "succeeds" and produces non-empty files (see
-    // extractSegmentsBatch's empty-file check above for the same failure class) — check
-    // the concatenated result actually still has a video stream before trusting it.
+    // extractSegmentsBatch's empty-file check above for the same failure class), so the
+    // concatenated result is checked for a video stream before it's trusted. But a
+    // subtler failure was also found with many-segment cuts (dozens of small kept
+    // windows, as a real silence-cut on a real recording produces): concatenating that
+    // many independently stream-copied segments can leave the container's own duration
+    // wildly inflated relative to the actual kept audio/video (a ~40s cut reporting
+    // 12+ minutes was observed) even though both streams are technically still present
+    // — this is what caused reports of audio going silent or video freezing partway
+    // through a downloaded export, well after the "cut complete" step reported success.
+    // Comparing the result's reported duration against the sum of the kept segments'
+    // durations (with slack for keyframe-snapped boundaries) catches that case too.
     await ffmpeg.writeFile("cut-verify.mp4", new Uint8Array(data));
-    const ok = await hasVideoStream(ffmpeg, "cut-verify.mp4");
+    const { hasVideo, durationSeconds } = await probeFile(ffmpeg, "cut-verify.mp4");
     await tryDeleteFile(ffmpeg, "cut-verify.mp4");
-    if (!ok) {
+    if (!hasVideo) {
       throw new Error("stream-copy cut result is missing its video stream");
+    }
+    const durationTolerance = Math.max(5, expectedDuration * 0.25);
+    if (durationSeconds === null || Math.abs(durationSeconds - expectedDuration) > durationTolerance) {
+      throw new Error(
+        `stream-copy cut result has an implausible duration (expected ~${expectedDuration.toFixed(1)}s, got ${durationSeconds}s)`
+      );
     }
   } catch (err) {
     console.warn("stream-copy cut failed, falling back to re-encode:", err);
