@@ -60,41 +60,6 @@ async function execChecked(ffmpeg, args) {
   return code;
 }
 
-// ffmpeg.wasm's exec() can "succeed" while still producing a file that's structurally
-// broken in ways that don't show up as a non-zero exit code or an empty file — a stream
-// silently dropped during a copy, or (seen when concatenating many stream-copied
-// segments) the container's own duration/timestamps ending up wildly inflated relative
-// to the actual content, which manifests downstream as frozen video, missing audio, or
-// both, well after the export step reported success. `-i <file>` with no output makes
-// ffmpeg print the input's stream list and duration and then abort (since no output was
-// given), so capturing that log output is a cheap way to check both before handing
-// bytes back to a caller.
-async function probeFile(ffmpeg, fileName) {
-  const lines = [];
-  const onLog = ({ message }) => lines.push(message);
-  ffmpeg.on("log", onLog);
-  try {
-    await ffmpeg.exec(["-i", fileName]);
-  } catch {
-    // expected: ffmpeg always errors here since no output file was specified
-  } finally {
-    ffmpeg.off("log", onLog);
-  }
-  const inputStart = lines.findIndex((l) => l.includes(`from '${fileName}'`));
-  const relevant = inputStart >= 0 ? lines.slice(inputStart) : lines;
-  const hasVideo = relevant.some((l) => /Stream #\d+:\d+.*: Video:/.test(l));
-  const durationLine = relevant.find((l) => /^\s*Duration:/.test(l));
-  const durationMatch = durationLine && durationLine.match(/Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)/);
-  const durationSeconds = durationMatch
-    ? parseInt(durationMatch[1]) * 3600 + parseInt(durationMatch[2]) * 60 + parseFloat(durationMatch[3])
-    : null;
-  return { hasVideo, durationSeconds };
-}
-
-async function hasVideoStream(ffmpeg, fileName) {
-  return (await probeFile(ffmpeg, fileName)).hasVideo;
-}
-
 const INPUT_MOUNT_DIR = "/input_mount";
 
 // Writing the whole source file into ffmpeg's regular (in-memory) filesystem means its
@@ -118,42 +83,6 @@ async function unmountInputFile(ffmpeg) {
     await ffmpeg.unmount(INPUT_MOUNT_DIR);
   } catch {
     // ignore, may not be mounted
-  }
-}
-
-// Joins many small mp4 files with the concat demuxer (stream copy). Merging is done in
-// batches and each batch's inputs are deleted as soon as they're folded into an
-// intermediate file, so at most `batchSize` segment files are ever resident in ffmpeg's
-// in-memory filesystem at once — holding all of them (potentially hundreds of MB for a
-// long video) until one final concat call risks exhausting the WASM heap.
-async function concatFilesInBatches(ffmpeg, fileNames, outputName, batchSize = 16) {
-  let currentNames = fileNames;
-  let round = 0;
-  while (currentNames.length > 1) {
-    const nextNames = [];
-    for (let i = 0; i < currentNames.length; i += batchSize) {
-      const batch = currentNames.slice(i, i + batchSize);
-      if (batch.length === 1) {
-        nextNames.push(batch[0]);
-        continue;
-      }
-      const mergedName = `merge-r${round}-${i}.mp4`;
-      const listContent = batch.map((name) => `file '${name}'`).join("\n");
-      await ffmpeg.writeFile("concat-list.txt", listContent);
-      await execChecked(ffmpeg, ["-f", "concat", "-safe", "0", "-i", "concat-list.txt", "-c", "copy", mergedName]);
-      for (const name of batch) await tryDeleteFile(ffmpeg, name);
-      nextNames.push(mergedName);
-    }
-    currentNames = nextNames;
-    round += 1;
-  }
-  await tryDeleteFile(ffmpeg, "concat-list.txt");
-
-  const [finalName] = currentNames;
-  if (finalName !== outputName) {
-    const data = await ffmpeg.readFile(finalName);
-    await ffmpeg.writeFile(outputName, data);
-    await tryDeleteFile(ffmpeg, finalName);
   }
 }
 
@@ -206,34 +135,18 @@ async function extractSegmentsBatch(ffmpeg, inputName, segments, startIndex) {
   return segmentNames;
 }
 
-// Extracts each kept segment with stream copy (no decode/encode, just a fast
-// keyframe-aligned cut) and joins them with the concat demuxer, which is also stream
-// copy. This only works when the source codecs are compatible with an mp4 container
-// (true for the vast majority of uploads: phone/screen recordings in H.264+AAC).
-async function cutSilenceSegmentsFast(ffmpeg, inputName, keepSegments, onProgress, batchSize = 20) {
-  const outputName = "cut.mp4";
-  const segmentNames = [];
-  try {
-    for (let i = 0; i < keepSegments.length; i += batchSize) {
-      const batch = keepSegments.slice(i, i + batchSize);
-      const batchNames = await extractSegmentsBatch(ffmpeg, inputName, batch, i);
-      segmentNames.push(...batchNames);
-      if (onProgress) onProgress((Math.min(i + batchSize, keepSegments.length) / (keepSegments.length + 1)) * 0.8);
-    }
-
-    await concatFilesInBatches(ffmpeg, segmentNames, outputName);
-    if (onProgress) onProgress(1);
-
-    return await ffmpeg.readFile(outputName);
-  } finally {
-    await tryDeleteFile(ffmpeg, "concat-list.txt");
-    for (const name of segmentNames) await tryDeleteFile(ffmpeg, name);
-  }
-}
-
-// Fallback for sources whose codec isn't compatible with stream-copying into mp4
-// (e.g. VP8/Opus webm uploads). Re-encodes the whole kept duration in one pass, which
-// is correct for any input but much slower for long videos with many cut segments.
+// Re-encodes every kept segment in a single filter_complex pass (trim+concat) rather
+// than stream-copying and concat-demuxing separately extracted segment files. Stream
+// copying many independently-cut segments together turned out not to be safe: testing
+// found the concat demuxer's output can end up with a container duration wildly
+// inflated relative to the actual kept content (a real ~40s cut reporting 12+ minutes,
+// and the same kind of drift on cuts as small as two segments) even though ffmpeg
+// reports success and both streams are technically present. Downstream players and this
+// app's own subtitle burn-in step trust that duration, so the video appears to freeze or
+// lose audio partway through — exactly the freezing/silent-audio reports this was
+// switched to fix. Re-encoding through one filter_complex pass keeps timestamps
+// (setpts=PTS-STARTPTS per segment, then a single concat) consistent by construction,
+// so there's no separate "fast path" left to fall back from — this is the only path.
 async function cutSilenceSegmentsReencode(ffmpeg, inputName, keepSegments, onProgress) {
   const outputName = "cut.mp4";
   const filterParts = [];
@@ -332,38 +245,9 @@ export async function splitVideoIntoChunks(ffmpeg, videoFile, totalDurationSec, 
 
 export async function cutSilenceSegments(ffmpeg, videoFile, keepSegments, onProgress) {
   const inputName = await mountInputFile(ffmpeg, videoFile);
-  const expectedDuration = keepSegments.reduce((sum, seg) => sum + (seg.end - seg.start), 0);
 
   let data;
   try {
-    data = await cutSilenceSegmentsFast(ffmpeg, inputName, keepSegments, onProgress);
-    // The stream-copy fast path can silently drop the video track on some inputs even
-    // when every individual exec() call "succeeds" and produces non-empty files (see
-    // extractSegmentsBatch's empty-file check above for the same failure class), so the
-    // concatenated result is checked for a video stream before it's trusted. But a
-    // subtler failure was also found with many-segment cuts (dozens of small kept
-    // windows, as a real silence-cut on a real recording produces): concatenating that
-    // many independently stream-copied segments can leave the container's own duration
-    // wildly inflated relative to the actual kept audio/video (a ~40s cut reporting
-    // 12+ minutes was observed) even though both streams are technically still present
-    // — this is what caused reports of audio going silent or video freezing partway
-    // through a downloaded export, well after the "cut complete" step reported success.
-    // Comparing the result's reported duration against the sum of the kept segments'
-    // durations (with slack for keyframe-snapped boundaries) catches that case too.
-    await ffmpeg.writeFile("cut-verify.mp4", new Uint8Array(data));
-    const { hasVideo, durationSeconds } = await probeFile(ffmpeg, "cut-verify.mp4");
-    await tryDeleteFile(ffmpeg, "cut-verify.mp4");
-    if (!hasVideo) {
-      throw new Error("stream-copy cut result is missing its video stream");
-    }
-    const durationTolerance = Math.max(5, expectedDuration * 0.25);
-    if (durationSeconds === null || Math.abs(durationSeconds - expectedDuration) > durationTolerance) {
-      throw new Error(
-        `stream-copy cut result has an implausible duration (expected ~${expectedDuration.toFixed(1)}s, got ${durationSeconds}s)`
-      );
-    }
-  } catch (err) {
-    console.warn("stream-copy cut failed, falling back to re-encode:", err);
     data = await cutSilenceSegmentsReencode(ffmpeg, inputName, keepSegments, onProgress);
   } finally {
     await unmountInputFile(ffmpeg);
@@ -424,49 +308,46 @@ export async function mixFinalAudio(ffmpeg, cutVideoBytes, options, onProgress) 
     });
   }
 
-  // Video is always copied (-c:v copy), never re-encoded, in the primary attempt below
-  // — re-encoding a video track that's already fine on every export would be needlessly
-  // slow. A stream copy can fail on some inputs (an incompatible codec, or an explicit
-  // "-map" that doesn't resolve — e.g. "cut.mp4" unexpectedly missing a video track);
-  // execChecked() turns that into a real, catchable error (ffmpeg does exit non-zero
-  // for a "-map" matching nothing) instead of the exec() call being silently trusted.
-  // hasVideoStream() is a second, independent check on top of that: it confirms the
-  // output file itself still has a video stream rather than relying solely on the exit
-  // code, in case some other stream-copy failure mode doesn't surface as a non-zero
-  // exit (as seen with the empty-segment bug above, before this file's own -map fix).
-  // Either check failing falls back to re-encoding the video track.
-  async function runMix(videoCodecArgs) {
-    if (mixParts.length === 1) {
-      await execChecked(ffmpeg, ["-i", "cut.mp4", "-map", "0:v:0", "-map", "0:a:0", ...videoCodecArgs, "-c:a", "copy", "final.mp4"]);
-    } else {
-      filterChain.push(`${mixParts.join("")}amix=inputs=${mixParts.length}:duration=first:dropout_transition=0[outa]`);
-      const filterComplex = filterChain.join(";");
-      await execChecked(ffmpeg, [
-        ...inputs,
-        "-filter_complex",
-        filterComplex,
-        "-map",
-        "0:v",
-        "-map",
-        "[outa]",
-        ...videoCodecArgs,
-        "-c:a",
-        "aac",
-        "final.mp4",
-      ]);
-      filterChain.pop();
-    }
-  }
-
-  try {
-    await runMix(["-c:v", "copy"]);
-    if (!(await hasVideoStream(ffmpeg, "final.mp4"))) {
-      throw new Error("stream copy produced an output with no video stream");
-    }
-  } catch (err) {
-    console.warn("stream-copy export failed, falling back to re-encode:", err);
-    await tryDeleteFile(ffmpeg, "final.mp4");
-    await runMix(["-c:v", "libx264", "-preset", "ultrafast", "-crf", "23"]);
+  // Video is always re-encoded here rather than stream-copied. A "-c:v copy" attempt
+  // was tried first for a while (cheaper when it works), with a re-encode fallback on
+  // failure — but stream-copy failures in this pipeline turned out not to be reliably
+  // detectable (a "-map" that silently resolves to nothing, or a technically-valid copy
+  // whose container ends up with corrupted duration/timestamps) even with exit-code
+  // checks and post-hoc stream/duration validation. Re-encoding by construction can't
+  // have those failure modes, so it's used unconditionally instead of being a fallback
+  // for a fast path that isn't trustworthy.
+  if (mixParts.length === 1) {
+    await execChecked(ffmpeg, [
+      "-i", "cut.mp4",
+      "-map", "0:v:0",
+      "-map", "0:a:0",
+      "-c:v", "libx264",
+      "-preset", "ultrafast",
+      "-crf", "23",
+      "-c:a", "aac",
+      "final.mp4",
+    ]);
+  } else {
+    filterChain.push(`${mixParts.join("")}amix=inputs=${mixParts.length}:duration=first:dropout_transition=0[outa]`);
+    const filterComplex = filterChain.join(";");
+    await execChecked(ffmpeg, [
+      ...inputs,
+      "-filter_complex",
+      filterComplex,
+      "-map",
+      "0:v",
+      "-map",
+      "[outa]",
+      "-c:v",
+      "libx264",
+      "-preset",
+      "ultrafast",
+      "-crf",
+      "23",
+      "-c:a",
+      "aac",
+      "final.mp4",
+    ]);
   }
 
   return ffmpeg.readFile("final.mp4");
