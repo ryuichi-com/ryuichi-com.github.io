@@ -271,7 +271,10 @@ strong, b { font-weight: 700; }
 /* ファーストビューの主コピー（明朝・大きく・行間を広く／写真は使わない） */
 .hero__copy {
   font-family: var(--font-serif);
-  font-size: clamp(1.4rem, 5.4vw, 2.05rem);
+  /* 上限は 1.8rem。これ以上大きくすると本文幅700pxの中で2行目
+     「「もっと早くやっておけば」と悔やむ方に、」が折り返し、
+     指定どおりの3行構成が崩れる（スマホ幅では折り返すのが自然なのでそのまま） */
+  font-size: clamp(1.4rem, 5.4vw, 1.8rem);
   font-weight: 500;
   line-height: 1.95;
   letter-spacing: 0.08em;
