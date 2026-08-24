@@ -61,7 +61,9 @@
 <main id="main">
 
 <!-- ==========================================================================
-     ① ファーストビュー ─ 写真は使わない。文字と余白だけで構成する
+     ① ファーストビュー
+     主コピー → 進め方の4工程（Signature Element）→ 意味を言う一文 → CTA → 空間写真。
+     「メニューを決めてから見るのではない」ことを、読ませずに図で伝えるのが狙い。
 ========================================================================== -->
 <section class="section section--major hero" data-cta-hide>
   <!-- ヒーローだけは本文の可読幅(700px)から外し、主コピーが指定どおり3行で組める幅にする -->
@@ -74,7 +76,29 @@
 
     <p class="lead">だから、まだ動ける今のうちにできることをお伝えしています。</p>
 
-    <p>理学療法士免許を持つトレーナーが姿勢と動きを評価し、必要なケアと運動を組み立てます。</p>
+    <!-- Signature Element：進め方の4工程。
+         「メニューを決めてから見る」のではないことを、読ませずに伝えるための図。
+         番号は振らない（順序は罫が示している）。矢印・アイコン・色は使わない -->
+    <ol class="flow" aria-label="当日の進め方">
+      <li class="flow__step">
+        <span class="flow__act">見る</span>
+        <span class="flow__term">評価</span>
+      </li>
+      <li class="flow__step">
+        <span class="flow__act">見立てる</span>
+        <span class="flow__term">仮説</span>
+      </li>
+      <li class="flow__step">
+        <span class="flow__act">行う</span>
+        <span class="flow__term">介入</span>
+      </li>
+      <li class="flow__step">
+        <span class="flow__act">もう一度見る</span>
+        <span class="flow__term">再評価</span>
+      </li>
+    </ol>
+
+    <p class="flow-note">メニューを決めてから見るのではなく、見てから決めます。</p>
 
     <hr class="rule">
 
@@ -87,6 +111,20 @@
       <a class="btn-line" href="https://lin.ee/6pUFgzJ" target="_blank" rel="noopener">LINEで予約する</a>
       <p class="cta-block__note">ご予約の前に、安全にご利用いただけるかを確認します。</p>
     </div>
+
+    <!-- 写真差し替え: 下の <span class="ph__label">…</span> ごと
+         <img class="ph__img" src="images/studio.jpg" alt="白金台のスタジオ"> に置き換える -->
+    <figure class="ph ph--wide u-mt-l">
+      <span class="ph__label">
+        <span class="ph__name">スタジオの空間（横長・16:9）</span>
+        <span class="ph__brief">
+          地下1階の施術スペースを引きで1枚。施術ベッドとPHI Pilates Barrel、
+          マットが同じ画面に入る構図。木材の質感と自然光が分かるように、
+          照明は足さず日中に撮影する。人物は入れない。
+          広さと清潔さが伝わることを優先し、物を片付けてから撮る。
+        </span>
+      </span>
+    </figure>
   </div>
 </section>
 
@@ -152,11 +190,14 @@
   <div class="wrap reveal">
     <h2 class="section-title">見立てをする人間について</h2>
 
-    <!-- 写真差し替え: 下の <span class="ph__label">顔写真</span> を
+    <!-- 写真差し替え: 下の <span class="ph__label">…</span> ごと
          <img class="ph__img" src="images/ryu-portrait.jpg" alt="新井りゅう"> に置き換える。
          顔写真は縦長（ph--portrait）または正方形（ph--square）。円形にしない -->
     <figure class="ph ph--portrait ph-face">
-      <span class="ph__label">顔写真</span>
+      <span class="ph__label">
+        <span class="ph__name">新井りゅうの顔写真（縦長・3:4）</span>
+        <span class="ph__brief">上半身、正面かやや斜めから。白い壁または木材の前で、日中の自然光。白衣やスーツではなく、当日と同じ動きやすい服装で。作り笑いにせず、話を聞いているときの落ち着いた表情を狙う。円形に切り抜かないため、周囲に余白を残して撮る。</span>
+      </span>
     </figure>
 
     <p class="credential">理学療法士国家資格保有</p>
@@ -267,7 +308,10 @@
           </p>
         </div>
         <!-- 写真差し替え: <span class="ph__label">…</span> を <img class="ph__img" src="images/step-01.jpg" alt=""> に -->
-        <figure class="ph ph--wide step__figure"><span class="ph__label">聞く場面の写真</span></figure>
+        <figure class="ph ph--wide step__figure"><span class="ph__label">
+        <span class="ph__name">聞いている場面（横長・16:9）</span>
+        <span class="ph__brief">向かい合って座り、相手の話を聞いている場面。顔がはっきり写らなくてよい。メモを取る手元と、相手側の姿勢が入る引きの構図。「ここに時間をかける」ことが伝わるよう、急いでいない空気で。</span>
+      </span></figure>
       </li>
 
       <li class="step">
@@ -279,7 +323,10 @@
             手で触れて確かめながら、どこに負担が集まっているかを探します。
           </p>
         </div>
-        <figure class="ph ph--wide step__figure"><span class="ph__label">評価場面の写真</span></figure>
+        <figure class="ph ph--wide step__figure"><span class="ph__label">
+        <span class="ph__name">姿勢と動きを見ている場面（横長・16:9）</span>
+        <span class="ph__brief">立っている相手を少し離れた位置から見ている構図、または背中や肩に手を当てて確かめている手元。器具は使わず、見ていること・触れて確かめていることが分かる画。</span>
+      </span></figure>
       </li>
 
       <li class="step">
@@ -292,7 +339,10 @@
             ご自身の身体の状態を、ご自身の言葉で説明できる状態を目指します。
           </p>
         </div>
-        <figure class="ph ph--wide step__figure"><span class="ph__label">説明場面の写真</span></figure>
+        <figure class="ph ph--wide step__figure"><span class="ph__label">
+        <span class="ph__name">説明している場面（横長・16:9）</span>
+        <span class="ph__brief">骨模型や紙に描いた図を示しながら話している手元。相手が同じものを見ている構図だと、一方的な説明でないことが伝わる。</span>
+      </span></figure>
       </li>
 
       <li class="step">
@@ -305,7 +355,10 @@
             順序が大切で、整えてから動かすことで、動きが身につきやすくなります。
           </p>
         </div>
-        <figure class="ph ph--wide step__figure"><span class="ph__label">運動場面の写真</span></figure>
+        <figure class="ph ph--wide step__figure"><span class="ph__label">
+        <span class="ph__name">運動している場面（横長・16:9）</span>
+        <span class="ph__brief">PHI Pilates Barrel またはマットの上での運動。補助している手が画面に入っていること。きつそうな表情や負荷の高い動作ではなく、静かな動きを選ぶ。</span>
+      </span></figure>
       </li>
 
       <li class="step">
@@ -317,7 +370,10 @@
             変化があったか、なかったかを一緒に確かめます。
           </p>
         </div>
-        <figure class="ph ph--wide step__figure"><span class="ph__label">再確認場面の写真</span></figure>
+        <figure class="ph ph--wide step__figure"><span class="ph__label">
+        <span class="ph__name">もう一度確認している場面（横長・16:9）</span>
+        <span class="ph__brief">最初に見たところを再び確認している場面。「評価場面の写真」と同じ角度・同じ距離で撮ると、見比べたことが伝わる（ビフォーアフターの演出はしない）。</span>
+      </span></figure>
       </li>
 
       <li class="step">
@@ -329,7 +385,10 @@
             通い続けなくても身体を保てる状態が、目標です。
           </p>
         </div>
-        <figure class="ph ph--wide step__figure"><span class="ph__label">セルフケアの写真</span></figure>
+        <figure class="ph ph--wide step__figure"><span class="ph__label">
+        <span class="ph__name">持ち帰るセルフケア（横長・16:9）</span>
+        <span class="ph__brief">自宅で続ける動きを実演している場面、またはお渡しする紙の手元。特別な器具を使わず、家でできることが分かる画にする。</span>
+      </span></figure>
       </li>
     </ol>
   </div>
@@ -385,10 +444,22 @@
     <!-- 写真差し替え: 各 <span class="ph__label">…</span> を
          <img class="ph__img" src="images/exterior.jpg" alt="…"> などに置き換える -->
     <div class="ph-grid ph-grid--2">
-      <figure class="ph ph--photo43"><span class="ph__label">外観写真</span></figure>
-      <figure class="ph ph--photo43"><span class="ph__label">入口写真</span></figure>
-      <figure class="ph ph--photo43"><span class="ph__label">室内写真</span></figure>
-      <figure class="ph ph--photo43"><span class="ph__label">階段写真</span></figure>
+      <figure class="ph ph--photo43"><span class="ph__label">
+        <span class="ph__name">建物の外観（4:3）</span>
+        <span class="ph__brief">道路側から建物全体。初めての人が目印にできる要素（門・植栽・隣の建物など）を画面に入れる。日中に撮影する。番地が写る場合は、公開前に読めないか確認すること。</span>
+      </span></figure>
+      <figure class="ph ph--photo43"><span class="ph__label">
+        <span class="ph__name">入口（4:3）</span>
+        <span class="ph__brief">インターホンと扉が分かる構図。「どのボタンを押すか」ではなく「ここで合っている」と確認できることが目的。少し引いて、扉までの導線が見えるように。</span>
+      </span></figure>
+      <figure class="ph ph--photo43"><span class="ph__label">
+        <span class="ph__name">施術スペース（4:3）</span>
+        <span class="ph__brief">ベッド・Barrel・マットが入る引きの構図。木材と自然光の質感が分かるように日中に撮影する。マンツーマンで使う部屋であることが伝わる広さで。</span>
+      </span></figure>
+      <figure class="ph ph--photo43"><span class="ph__label">
+        <span class="ph__name">地下へ下りる階段（4:3）</span>
+        <span class="ph__brief">手すりが写る位置から。段数と傾斜が分かる引きの構図。実際の明るさのまま撮る（明るく補正しない）。ご利用の条件を正しく判断していただくための写真なので、見栄えより実物どおりであることを優先する。</span>
+      </span></figure>
     </div>
 
     <p>

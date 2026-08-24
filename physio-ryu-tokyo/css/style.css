@@ -636,13 +636,32 @@ strong, b { font-weight: 700; }
   aspect-ratio: 4 / 3;
 }
 .section--plane .ph { background: var(--paper-sink); }
+/* 用途名と、撮影内容の指示。写真が入るまでの間、枠の中に何を撮るかを書いておく。
+   撮影後は .ph__label ごと <img class="ph__img"> に差し替える */
 .ph__label {
-  font-size: var(--fs-xs);
-  letter-spacing: 0.16em;
-  color: var(--ink-faint);
-  line-height: var(--lh-label);
+  display: block;
+  max-width: 30em;
+  padding: var(--sp-4);
   text-align: center;
-  padding: var(--sp-2);
+  color: var(--ink-faint);
+}
+.ph__name {
+  display: block;
+  font-family: var(--font-mincho);
+  font-size: var(--fs-ms);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  line-height: var(--lh-label);
+  color: var(--ink-sub);
+  margin-bottom: var(--sp-2);
+}
+.ph__brief {
+  display: block;
+  font-size: var(--fs-xs);
+  letter-spacing: 0.04em;
+  line-height: 1.75;
+  /* 撮影する人が読むための文字なので、枠の地色の上で読める濃さにする */
+  color: var(--ink-sub);
 }
 .ph__img {
   width: 100%;
@@ -686,6 +705,102 @@ strong, b { font-weight: 700; }
 .ph-grid--2 { grid-template-columns: repeat(2, 1fr); }
 @media (min-width: 768px) {
   .ph-grid { gap: var(--sp-3); }
+}
+
+/* ---------------------------------------------------------------------------
+   9-2. 進め方の図（ファーストビューの核）
+   ---------------------------------------------------------------------------
+   「見る → 見立てる → 行う → もう一度見る」という順序そのものが商品なので、
+   ここでだけ順序を示す図を使う。番号は振らない（順序は線が示している）。
+   目盛りのような細い罫と縦のティックだけで組み、色・矢印・アイコンは使わない。
+   アニメーションもつけない。
+--------------------------------------------------------------------------- */
+.flow {
+  position: relative;
+  margin: var(--sp-7) 0;
+  padding-top: var(--sp-5);
+}
+/* 工程を貫く1本の罫 */
+.flow::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1px;
+  height: 100%;
+  background: var(--rule-strong);
+}
+.flow__step {
+  position: relative;
+  padding-left: var(--sp-5);
+  padding-bottom: var(--sp-5);
+}
+.flow__step:last-child { padding-bottom: 0; }
+/* 罫を横切るティック（目盛り） */
+.flow__step::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.7em;
+  width: var(--sp-3);
+  height: 1px;
+  background: var(--ink);
+}
+.flow__act {
+  display: block;
+  font-family: var(--font-mincho);
+  font-size: var(--fs-l);
+  font-weight: 700;
+  letter-spacing: var(--ls-head);
+  line-height: var(--lh-head);
+  color: var(--ink);
+}
+/* 臨床で使う言い方を添える。読ませるためではなく、拠って立つものを示すため */
+.flow__term {
+  display: block;
+  font-size: var(--fs-xs);
+  letter-spacing: 0.16em;
+  line-height: var(--lh-label);
+  color: var(--ink-sub);
+  margin-top: var(--sp-1);
+}
+
+@media (min-width: 768px) {
+  .flow {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--sp-5);
+    padding-top: var(--sp-5);
+  }
+  .flow::before {
+    left: 0;
+    right: 0;
+    top: 0;
+    width: auto;
+    height: 1px;
+  }
+  .flow__step {
+    padding-left: 0;
+    padding-top: var(--sp-4);
+    padding-bottom: 0;
+  }
+  .flow__step::before {
+    top: calc(var(--sp-5) * -1);
+    left: 0;
+    width: 1px;
+    height: var(--sp-3);
+  }
+}
+
+/* 図が何を意味するかを言う一文。図の直後に置く */
+.flow-note {
+  font-family: var(--font-mincho);
+  font-size: var(--fs-l);
+  font-weight: 700;
+  line-height: var(--lh-head);
+  letter-spacing: var(--ls-head);
+  color: var(--ink);
+  margin: 0 0 var(--sp-6);
 }
 
 /* ---------------------------------------------------------------------------
