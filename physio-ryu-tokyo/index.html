@@ -22,7 +22,7 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&amp;family=Noto+Sans+JP:wght@400;500;700&amp;family=Noto+Serif+JP:wght@500;600&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&amp;family=Zen+Old+Mincho:wght@400;700&amp;display=swap" rel="stylesheet">
 
 <link rel="stylesheet" href="css/style.css">
 </head>
@@ -63,8 +63,9 @@
 <!-- ==========================================================================
      ① ファーストビュー ─ 写真は使わない。文字と余白だけで構成する
 ========================================================================== -->
-<section class="section section--tall section--dots hero" data-cta-hide>
-  <div class="wrap">
+<section class="section section--major hero" data-cta-hide>
+  <!-- ヒーローだけは本文の可読幅(700px)から外し、主コピーが指定どおり3行で組める幅にする -->
+  <div class="wrap wrap--hero">
     <h1 class="hero__copy">
       動けなくなってから<br>
       「もっと早くやっておけば」と悔やむ方に、<br>
@@ -92,7 +93,7 @@
 <!-- ==========================================================================
      ② 悩みへの共感
 ========================================================================== -->
-<section class="section section--alt">
+<section class="section" data-chapter="一" data-chapter-label="感じていること">
   <div class="wrap reveal">
     <h2 class="section-title">こんなふうに感じていませんか</h2>
 
@@ -112,7 +113,7 @@
      ※ 指示書原文にあった1語が12章の禁止表現に当たるため、
        趣旨（一時的に楽になるだけ）を保ったまま「その部分に手を当てれば」に置き換えている
 ========================================================================== -->
-<section class="section">
+<section class="section section--major" data-chapter="二" data-chapter-label="なぜ、戻るのか">
   <div class="wrap reveal">
     <h2 class="section-title">「その日だけ楽になる」を、繰り返していませんか</h2>
 
@@ -125,7 +126,9 @@
     <p>大切なのは、何をするかより、何が起きているかを先に見極めることです。</p>
   </div>
 
-  <p class="pull-quote">同じ身体でも、見る人が変われば、やることが変わります。</p>
+  <!-- このページで最も重要な一文。自動折り返しに任せると「やるこ／と」で切れるため、
+       意味の切れ目（読点）で明示的に改行する -->
+  <p class="pull-quote">同じ身体でも、見る人が変われば、<br>やることが変わります。</p>
 
   <div class="wrap">
     <p>
@@ -139,18 +142,13 @@
       元に戻る場所へ戻っていきます。
     </p>
 
-    <span class="divider" aria-hidden="true">
-      <svg viewBox="0 0 320 24" fill="none" xmlns="http://www.w3.org/2000/svg" focusable="false">
-        <path d="M0 18C80 2 240 2 320 18" stroke="currentColor" stroke-width="1"/>
-      </svg>
-    </span>
   </div>
 </section>
 
 <!-- ==========================================================================
      ④ 誰が見るのか（プロフィール）
 ========================================================================== -->
-<section class="section section--alt">
+<section class="section section--major" data-chapter="三" data-chapter-label="見立てをする人">
   <div class="wrap reveal">
     <h2 class="section-title">見立てをする人間について</h2>
 
@@ -208,7 +206,7 @@
 <!-- ==========================================================================
      ⑤ 疾患後の身体管理
 ========================================================================== -->
-<section class="section">
+<section class="section section--plane" data-chapter="四" data-chapter-label="疾患後の身体管理">
   <div class="wrap reveal">
     <h2 class="section-title">医療機関にかかった後の、身体の管理も承ります</h2>
 
@@ -252,13 +250,13 @@
      各ステップの写真プレースホルダは後日差し込み（任意）。
      不要な場合は <figure class="ph …"> ごと削除してよい
 ========================================================================== -->
-<section class="section section--alt">
+<section class="section" data-chapter="五" data-chapter-label="当日の流れ">
   <div class="wrap reveal">
     <h2 class="section-title">当日、どんなことをするのか</h2>
 
     <ol class="steps">
       <li class="step">
-        <span class="step__num en" aria-hidden="true">1</span>
+        <span class="step__num" aria-hidden="true">1</span>
         <h3 class="step__title">聞く</h3>
         <div class="step__body">
           <p>
@@ -271,7 +269,7 @@
       </li>
 
       <li class="step">
-        <span class="step__num en" aria-hidden="true">2</span>
+        <span class="step__num" aria-hidden="true">2</span>
         <h3 class="step__title">見る</h3>
         <div class="step__body">
           <p>
@@ -283,7 +281,7 @@
       </li>
 
       <li class="step">
-        <span class="step__num en" aria-hidden="true">3</span>
+        <span class="step__num" aria-hidden="true">3</span>
         <h3 class="step__title">伝える</h3>
         <div class="step__body">
           <p>
@@ -296,7 +294,7 @@
       </li>
 
       <li class="step">
-        <span class="step__num en" aria-hidden="true">4</span>
+        <span class="step__num" aria-hidden="true">4</span>
         <h3 class="step__title">整えて、動かす</h3>
         <div class="step__body">
           <p>
@@ -309,7 +307,7 @@
       </li>
 
       <li class="step">
-        <span class="step__num en" aria-hidden="true">5</span>
+        <span class="step__num" aria-hidden="true">5</span>
         <h3 class="step__title">確かめる</h3>
         <div class="step__body">
           <p>
@@ -321,7 +319,7 @@
       </li>
 
       <li class="step">
-        <span class="step__num en" aria-hidden="true">6</span>
+        <span class="step__num" aria-hidden="true">6</span>
         <h3 class="step__title">持ち帰る</h3>
         <div class="step__body">
           <p>
@@ -338,14 +336,14 @@
 <!-- ==========================================================================
      ⑦ 料金と時間 ─ 価格を主表示、時間は補足情報
 ========================================================================== -->
-<section class="section">
+<section class="section" data-chapter="六" data-chapter-label="料金">
   <div class="wrap reveal">
     <h2 class="section-title">料金</h2>
 
     <div class="price">
       <p class="price__name">パーソナル身体管理セッション</p>
       <p class="price__amount">
-        <span class="price__times">1回</span><span class="en">16,500</span><span class="price__unit">円（税込）</span>
+        <span class="price__times">1回</span>16,500<span class="price__unit">円（税込）</span>
       </p>
       <p class="price__slot">ご予約枠：90分</p>
     </div>
@@ -378,7 +376,7 @@
 <!-- ==========================================================================
      ⑧ 場所・営業
 ========================================================================== -->
-<section class="section section--alt">
+<section class="section" data-chapter="七" data-chapter-label="場所とご利用">
   <div class="wrap reveal">
     <h2 class="section-title">場所とご利用について</h2>
 
@@ -435,7 +433,7 @@
 <!-- ==========================================================================
      ⑨ よくある質問（details / summary のアコーディオン）
 ========================================================================== -->
-<section class="section">
+<section class="section section--minor" data-chapter="八" data-chapter-label="よくある質問">
   <div class="wrap reveal">
     <h2 class="section-title">よくある質問</h2>
 
@@ -541,14 +539,16 @@
 <!-- ==========================================================================
      ⑩ 最終CTA ─ 背景色を変えて他セクションと差をつける
 ========================================================================== -->
-<section class="section section--tall section--dark">
+<section class="section section--ink">
   <div class="wrap reveal">
-    <h2 class="section-title section-title--lg section-title--center">
+    <!-- 中央揃えはページ内で pull-quote 1箇所だけに限る。
+         ここは左揃えに統一して、見出し・本文・ボタンの左端を揃える -->
+    <h2 class="section-title section-title--lg">
       自分の身体のことを、<br>
       誰かに任せきりにしない。
     </h2>
 
-    <p class="u-center u-mb-0">
+    <p class="u-mb-0">
       今の身体がどうなっているのかを知り、<br>
       必要なことと、必要でないことを整理するところから始めます。
     </p>
@@ -570,7 +570,7 @@
 ========================================================================== -->
 <footer class="site-footer">
   <div class="site-footer__inner">
-    <p class="site-footer__brand en">Physio Ryu Tokyo</p>
+    <p class="site-footer__brand">Physio Ryu Tokyo</p>
     <address class="site-footer__addr">
       東京都港区白金台／完全予約制・マンツーマン<br>
       木曜日 9:00〜17:00（ご予約はLINEで承ります）

@@ -2,22 +2,50 @@
 /* ============================================================================
    Physio Ryu Tokyo — 共通スタイルシート（全ページ共通で読み込む）
    ---------------------------------------------------------------------------
-   【方針】医療系エディトリアル。1カラム／本文最大幅 680-720px／余白と文字組みで格を出す。
-   見出しは明朝（Noto Serif JP）、本文はゴシック（Noto Sans JP）、英数字は Cormorant Garamond。
-   金色・グラデーション・筆記体・装飾アイコン・絵文字は使わない。
-   アニメーションはフェードインのみ。prefers-reduced-motion に対応。
+   【デザインの考え方】
 
-   【命名規則】（後続エージェントへ）
+   1. 紙と墨。彩度を持つのは「押すべきボタン」だけ。
+      地は生成りの紙（--paper）、文字は暖かい墨（--ink）。
+      サイト全体で彩度のある色は LINEグリーン ただ一つ。
+      「色が付いている＝そこを押す」という規律を全ページで守ること。
+      装飾のために色を足さない。差し色を増やした瞬間にこの設計は壊れる。
+
+   2. 柱（はしら）で読者を導く。背景の塗り分けでは区切らない。
+      セクションに data-chapter="三" data-chapter-label="なぜ、戻るのか" を書くと、
+      PCでは本文左の余白に、スマホでは見出しの上に「柱」が出る。
+      雑誌の柱と同じで、今どこを読んでいるかを示す。
+      交互に背景色を変えて区切る処理は使わない。
+
+   3. セクションには軽重がある。
+      .section--major … 章の山場（見出しを大きく、余白を広く）
+      .section        … 標準
+      .section--minor … 補足的な章（見出しを小さく、余白を詰める）
+      全部を同じ大きさで並べると、どこが山場か読者に伝わらない。
+
+   4. 寸法は必ずスケールから取る。
+      文字は --fs-*（1.25倍の9段階）、余白は --sp-*（4px基準の10段階）。
+      その場かぎりの px や rem を直接書かない。clamp() もスケールの定義側だけで使う。
+
+   5. 行間は一律にしない。
+      読ませる本文は広く（--lh-read 1.9）、実務情報は詰める（--lh-tight 1.65）。
+      全部が同じ広さだと緩急が消えて締まりのない紙面になる。
+
+   【禁止】金色・グラデーション・筆記体・装飾アイコン・絵文字。
+           アニメーションは控えめなフェードインのみ（prefers-reduced-motion 対応）。
+
+   【命名規則】
    - ブロック名は小文字ハイフン区切り     : .section-title / .ph-grid
    - 要素は二重アンダースコア             : .step__num / .site-header__inner
-   - 変化形（モディファイア）は二重ハイフン: .section--alt / .ph--portrait
+   - 変化形（モディファイア）は二重ハイフン: .section--major / .ph--portrait
    - 状態クラスは is- 接頭辞              : .is-open / .is-visible / .is-current
-   - 汎用ユーティリティは u- 接頭辞       : .u-center / .u-mt-l
+   - 汎用ユーティリティは u- 接頭辞       : .u-mt-l / .u-mb-0
 
    【主要クラス早見】
-   レイアウト : .wrap .wrap--narrow .wrap--wide / .section .section--alt .section--dark
-   見出し     : .page-title .section-title .section-lead .subhead .eyebrow .rule
-   本文       : .prose（下層ページの記事本文コンテナ）.lead .note-small .standout .pull-quote
+   レイアウト : .wrap .wrap--hero
+                .section .section--major .section--minor .section--plane .section--ink
+   見出し     : .page-title .section-title .subhead .rule
+   本文       : .prose（下層ページの記事本文）.lead .note-small .standout .pull-quote
+                ※ .ph--square / .ph__img は写真差し替え後に使うため未使用でも残す
    リスト     : .list-dot .list-dot__item--emph / .list-plain / .steps .step
    囲み       : .notice .notice__title / .card / .info-dl
    表         : .table-wrap > .table
@@ -25,7 +53,7 @@
    料金       : .price .price__amount .price__slot
    FAQ        : .faq .faq__item(details) .faq__q(summary) .faq__a
    CTA        : .cta-block .btn-line .btn-line--block .fixed-cta .link-more
-   共通パーツ : .site-header .gnav .nav-toggle / .site-footer / .divider
+   共通パーツ : .site-header .gnav .nav-toggle / .site-footer
    演出       : .reveal（JSがフェードイン対象として拾う）
 ============================================================================ */
 
@@ -33,48 +61,82 @@
    1. デザイントークン
 --------------------------------------------------------------------------- */
 :root {
-  /* 配色（指示書 10章のまま） */
-  --bg:        #FDFCFA;  /* ソフトホワイト（わずかに温かみ） */
-  --bg-alt:    #F5F2ED;  /* 温かいベージュ（セクション交互） */
-  --text:      #2C3440;  /* 深いネイビーグレー（真っ黒にしない） */
-  --text-sub:  #6B7280;  /* 副次テキスト */
-  --accent:    #3D4B5C;  /* 深いネイビー */
-  --olive:     #8B9474;  /* 落ち着いたオリーブ（区切り線・小見出しに少量） */
-  --line:      #06C755;  /* LINEグリーン（CTAのみ） */
-  --line-deep: #05A948;  /* LINEグリーンの押下・境界用 */
+  /* --- 色 ---------------------------------------------------------------
+     無彩色はすべて墨（#23211E）から導いた暖色寄りのグレー。
+     寒色のグレー（例: #6B7280）を混ぜないこと。紙の温度と合わなくなる。   */
+  --paper:       #FAF9F7;  /* 生成りの紙。地 */
+  --paper-deep:  #ECE8E1;  /* 一段深い紙。意味のある面にだけ使う */
+  --paper-sink:  #E3DED5;  /* さらに深い面（写真プレースホルダ） */
 
-  /* 派生色 */
-  --bg-notice:  #F1EEE7;  /* 注意書きボックスの地色 */
-  --bg-ph:      #EDE7DD;  /* 写真プレースホルダの薄いベージュ */
-  --text-ph:    #A2998B;  /* プレースホルダの用途名 */
-  --hairline:   #E2DCD2;  /* 極細の罫（多用しない） */
-  --hairline-2: #D6CFC3;
-  --on-dark:    #F3F1EC;  /* 濃色背景の上の文字 */
-  --on-dark-sub:#C3C9D1;
+  --ink:         #23211E;  /* 墨。見出し・濃色面の地 */
+  --ink-body:    #35322D;  /* 本文 */
+  --ink-sub:     #6F6961;  /* 副次テキスト（紙の上で 5.6:1） */
+  --ink-faint:   #A79F94;  /* 柱の番号・プレースホルダの用途名 */
 
-  /* タイポグラフィ */
-  --font-serif: "Noto Serif JP", "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", serif;
-  --font-sans:  "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif;
-  --font-en:    "Cormorant Garamond", "Noto Serif JP", serif;
+  --rule:        #DCD5CA;  /* 罫 */
+  --rule-strong: #C4BBAC;
 
-  --lh-body: 1.95;
-  --lh-head: 1.6;
-  --ls-body: 0.04em;
-  --ls-head: 0.06em;
+  --on-ink:      #F5F2EC;  /* 濃色面の上の文字 */
+  --on-ink-sub:  #B9B2A6;
 
-  /* 寸法 */
-  --measure:        700px;  /* 本文の最大幅（雑誌の1段組の可読幅） */
-  --measure-narrow: 600px;
-  --measure-wide:   960px;
-  --pad-x: 24px;            /* スマホ左右パディング */
+  /* サイト内で唯一、彩度を持つ色。CTA以外に絶対に使わない */
+  --line:        #06C755;
+  --line-deep:   #05A948;
 
-  --sec-y:   clamp(60px, 4.5vw + 44px, 112px);  /* セクション上下余白 */
-  --sec-y-l: clamp(76px, 6vw + 52px, 140px);    /* 重いセクション用 */
-  --gap:     clamp(20px, 3vw, 32px);
+  /* --- 書体 -------------------------------------------------------------
+     2書体だけ。英数字専用の3書体目は置かない（用途が機械的になるため）。 */
+  --font-mincho: "Zen Old Mincho", "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", serif;
+  --font-gothic: "Zen Kaku Gothic New", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif;
 
-  --radius:   6px;  /* 角丸は丸くしすぎない（4-8px） */
-  --radius-s: 4px;
-  --radius-btn: 8px;
+  /* --- 文字サイズ（1.25倍の9段階。この外の値を書かない） ----------------- */
+  --fs-xs:  0.75rem;                              /* 12px ラベル・柱 */
+  --fs-s:   0.8125rem;                            /* 13px 補足 */
+  --fs-ms:  0.9375rem;                            /* 15px 小 */
+  --fs-m:   1rem;                                 /* 本文 */
+  --fs-l:   1.25rem;                              /* リード・小見出し */
+  --fs-xl:  clamp(1.32rem, 1rem + 1.4vw, 1.5625rem);   /* 節見出し */
+  --fs-2xl: clamp(1.5rem, 1.1rem + 1.9vw, 1.953rem);   /* セクション見出し */
+  --fs-3xl: clamp(1.75rem, 1.2rem + 2.6vw, 2.441rem);  /* 山場・ページ見出し */
+  --fs-4xl: clamp(2rem, 1.2rem + 3.6vw, 3.052rem);     /* 価格 */
+  /* ヒーロー専用。上限 2.3rem は、主コピー2行目（20字）が
+     ヒーロー幅860px の中で折り返さずに収まる最大値
+     （20字 × 36.8px × 1.06 = 780px < 796px）。
+     これ以上大きくすると指定どおりの3行構成が崩れる */
+  --fs-hero: clamp(1.5rem, 1rem + 2.4vw, 2.3rem);
+
+  /* --- 余白（4px基準の10段階。この外の値を書かない） --------------------- */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+  --sp-8: 64px;
+  --sp-9:  clamp(64px, 8vw, 96px);
+  --sp-10: clamp(88px, 11vw, 144px);
+
+  /* --- 行間（一律にしない。読ませる／詰めるを使い分ける） ----------------- */
+  --lh-read:  1.9;    /* 読ませる本文 */
+  --lh-list:  1.8;    /* リスト */
+  --lh-tight: 1.65;   /* 実務情報・表・注意書き */
+  --lh-head:  1.55;   /* 見出し */
+  --lh-label: 1.4;    /* ラベル */
+
+  --ls-body: 0.03em;
+  --ls-head: 0.05em;
+
+  /* --- 寸法 -------------------------------------------------------------- */
+  --measure:        700px;  /* 本文の可読幅 */
+  --measure-wide:   980px;
+  --measure-hero:   860px;  /* ヒーローは本文幅の制約から外す */
+  /* PCで柱を置く左の余白。柱を出す最小幅は
+     (measure / 2 + gutter) * 2 = (350 + 240) * 2 = 1180px なので、
+     余裕をみて 1240px 以上でのみ表示する（下の @media と対応） */
+  --gutter:         240px;
+  --pad-x:          24px;
+
+  --radius-btn: 4px;        /* 角丸はボタンだけ。面は紙なので角を丸めない */
 
   --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
 }
@@ -91,12 +153,12 @@ html {
 
 body {
   margin: 0;
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--font-sans);
+  background: var(--paper);
+  color: var(--ink-body);
+  font-family: var(--font-gothic);
   font-weight: 400;
-  font-size: 16px;
-  line-height: var(--lh-body);
+  font-size: var(--fs-m);
+  line-height: var(--lh-read);
   letter-spacing: var(--ls-body);
   font-feature-settings: "palt" 1;
   -webkit-font-smoothing: antialiased;
@@ -107,47 +169,40 @@ body {
 }
 
 @media (min-width: 768px) {
-  body { font-size: 17px; }
+  :root { --fs-m: 1.0625rem; }  /* 17px */
 }
 
 img, svg, video { max-width: 100%; height: auto; display: block; }
 figure { margin: 0; }
 
 a {
-  color: var(--accent);
-  text-underline-offset: 0.28em;
+  color: var(--ink);
+  text-underline-offset: 0.26em;
   text-decoration-thickness: 1px;
+  text-decoration-color: var(--rule-strong);
 }
-a:hover { color: var(--text); }
+a:hover { text-decoration-color: var(--ink); }
 
 :focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--ink);
   outline-offset: 3px;
-  border-radius: 2px;
 }
 
 h1, h2, h3, h4 {
-  font-family: var(--font-serif);
-  font-weight: 600;
+  font-family: var(--font-mincho);
   line-height: var(--lh-head);
   letter-spacing: var(--ls-head);
+  color: var(--ink);
   margin: 0;
 }
 
-p { margin: 0 0 1.6em; }
+p { margin: 0 0 1.5em; }
 p:last-child { margin-bottom: 0; }
 
 ul, ol { margin: 0; padding: 0; }
 li { list-style: none; }
 
 strong, b { font-weight: 700; }
-
-/* 英数字だけ Cormorant Garamond にしたい箇所で使う */
-.en {
-  font-family: var(--font-en);
-  letter-spacing: 0.08em;
-  font-weight: 500;
-}
 
 /* ---------------------------------------------------------------------------
    3. レイアウト
@@ -158,322 +213,375 @@ strong, b { font-weight: 700; }
   margin-inline: auto;
   padding-inline: var(--pad-x);
 }
-.wrap--narrow { max-width: var(--measure-narrow); }
-.wrap--wide   { max-width: var(--measure-wide); }
+.wrap--hero   { max-width: var(--measure-hero); }
 
 @media (min-width: 768px) {
-  .wrap { padding-inline: 32px; }
+  .wrap { padding-inline: var(--sp-6); }
 }
 
-/* セクション。背景は --bg と --bg-alt を交互に切り替えて罫線なしで区切る */
+/* セクション。区切るのは余白の落差と見出しの級数。背景の塗り分けは使わない */
 .section {
   position: relative;
-  padding-block: var(--sec-y);
+  padding-block: var(--sp-9);
 }
-.section--alt  { background: var(--bg-alt); }
-.section--tall { padding-block: var(--sec-y-l); }
+.section--major { padding-block: var(--sp-10); }
+.section--minor { padding-block: var(--sp-8); }
 
-/* 濃色セクション（最終CTAなど、他と明確に差をつけたいとき） */
-.section--dark {
-  background: var(--accent);
-  color: var(--on-dark);
+/* 意味のある面。多用しない（信頼を担保する章・実務情報など） */
+.section--plane { background: var(--paper-deep); }
+
+/* 濃色面。1ページに1回まで（最終CTA） */
+.section--ink {
+  background: var(--ink);
+  color: var(--on-ink);
+  padding-block: var(--sp-10);
 }
-.section--dark .section-title,
-.section--dark h2, .section--dark h3 { color: var(--on-dark); }
-.section--dark .note-small { color: var(--on-dark-sub); }
-.section--dark a { color: var(--on-dark); }
+.section--ink h1, .section--ink h2, .section--ink h3 { color: var(--on-ink); }
+.section--ink .note-small,
+.section--ink .cta-block__note { color: var(--on-ink-sub); }
+.section--ink a { color: var(--on-ink); text-decoration-color: rgba(245, 242, 236, 0.5); }
+.section--ink .rule { border-top-color: rgba(245, 242, 236, 0.35); }
 
-/* 極薄のドットグリッド（opacity 0.05 以下） */
-.section--dots::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background-image: radial-gradient(var(--text) 1px, transparent 1px);
-  background-size: 22px 22px;
-  opacity: 0.04;
+/* --- 柱（はしら） -----------------------------------------------------------
+   HTMLに data-chapter="三" data-chapter-label="なぜ、戻るのか" を書くだけで出る。
+   スマホでは見出しの上に1行、PCでは本文左の余白に縦に置く。            */
+.section[data-chapter]::before,
+.section[data-chapter]::after {
+  color: var(--ink-sub);
+  font-family: var(--font-mincho);
   pointer-events: none;
 }
-.section--dots > * { position: relative; }
+
+/* スマホ：本文の上に「三 ── なぜ、戻るのか」 */
+.section[data-chapter]::before {
+  content: attr(data-chapter) "  ──  " attr(data-chapter-label);
+  display: block;
+  width: 100%;
+  max-width: var(--measure);
+  margin: 0 auto var(--sp-5);
+  padding-inline: var(--pad-x);
+  font-size: var(--fs-xs);
+  letter-spacing: 0.18em;
+  line-height: var(--lh-label);
+}
+.section[data-chapter]::after { content: none; }
+
+@media (min-width: 768px) {
+  .section[data-chapter]::before { padding-inline: var(--sp-6); }
+}
+
+/* PC：本文の左の余白に、番号を大きく、章題を小さく置く */
+@media (min-width: 1240px) {
+  .section[data-chapter]::before,
+  .section[data-chapter]::after {
+    position: absolute;
+    left: calc(50% - var(--measure) / 2 - var(--gutter));
+    width: calc(var(--gutter) - var(--sp-7));
+    margin: 0;
+    padding: 0;
+    text-align: right;
+  }
+  .section[data-chapter]::before {
+    content: attr(data-chapter);
+    top: var(--sp-9);
+    font-size: var(--fs-2xl);
+    line-height: 1;
+    color: var(--ink-faint);
+    letter-spacing: 0;
+  }
+  .section[data-chapter]::after {
+    content: attr(data-chapter-label);
+    top: calc(var(--sp-9) + var(--sp-7));
+    font-size: var(--fs-xs);
+    letter-spacing: 0.16em;
+    line-height: var(--lh-label);
+  }
+  .section--major[data-chapter]::before { top: var(--sp-10); }
+  .section--major[data-chapter]::after  { top: calc(var(--sp-10) + var(--sp-7)); }
+  .section--minor[data-chapter]::before { top: var(--sp-8); }
+  .section--minor[data-chapter]::after  { top: calc(var(--sp-8) + var(--sp-7)); }
+}
 
 /* ---------------------------------------------------------------------------
    4. 見出し・テキスト部品
+   大きい明朝は細く（400）、小さい見出しは太く（700）。
+   同じウェイトで大小を作らないこと。落差が消える。
 --------------------------------------------------------------------------- */
 
 /* 下層ページの大見出し */
 .page-title {
-  font-size: clamp(1.7rem, 4.6vw, 2.35rem);
-  font-weight: 600;
-  margin-bottom: 1.1em;
+  font-size: var(--fs-3xl);
+  font-weight: 400;
+  margin-bottom: var(--sp-6);
 }
 
-/* セクション見出し */
+/* セクション見出し（標準） */
 .section-title {
-  font-size: clamp(1.35rem, 3.4vw, 1.75rem);
-  font-weight: 600;
-  margin-bottom: 1.4em;
+  font-size: var(--fs-2xl);
+  font-weight: 400;
+  margin-bottom: var(--sp-6);
 }
-.section-title--lg { font-size: clamp(1.55rem, 4.4vw, 2.15rem); }
-.section-title--center { text-align: center; }
+/* 山場のセクション見出し */
+.section--major > .wrap > .section-title,
+.section-title--lg {
+  font-size: var(--fs-3xl);
+  font-weight: 400;
+  margin-bottom: var(--sp-7);
+}
+/* 補足的なセクション見出し */
+.section--minor > .wrap > .section-title {
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  margin-bottom: var(--sp-5);
+}
 
-/* 小見出し（オリーブを少量だけ使う） */
+/* 小見出し */
 .subhead {
-  font-family: var(--font-serif);
-  font-size: 1.05rem;
-  font-weight: 600;
+  font-family: var(--font-mincho);
+  font-size: var(--fs-l);
+  font-weight: 700;
   letter-spacing: var(--ls-head);
-  color: var(--text);
-  margin: 2.6em 0 1em;
-  padding-left: 0.9em;
-  border-left: 2px solid var(--olive);
-  line-height: 1.7;
-}
-
-/* セクションの上に置く小さなラベル */
-.eyebrow {
-  display: block;
-  font-family: var(--font-en);
-  font-size: 0.82rem;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--olive);
-  margin-bottom: 1.2em;
-}
-
-/* リード文 */
-.lead {
-  font-family: var(--font-serif);
-  font-size: clamp(1.02rem, 2.4vw, 1.16rem);
-  line-height: 1.95;
-  letter-spacing: 0.05em;
-  margin-bottom: 2em;
+  line-height: var(--lh-head);
+  margin: var(--sp-8) 0 var(--sp-4);
 }
 
 /* 「―――」の区切り */
 .rule {
-  width: 56px;
+  width: var(--sp-8);
   height: 0;
   border: 0;
-  border-top: 1px solid var(--hairline-2);
-  margin: 2.4em 0;
+  border-top: 1px solid var(--rule-strong);
+  margin: var(--sp-6) 0;
 }
-.rule--center { margin-inline: auto; }
-.section--dark .rule { border-top-color: rgba(243, 241, 236, 0.4); }
 
-/* 小さな補足（12-13px） */
+/* リード文 */
+.lead {
+  font-family: var(--font-mincho);
+  font-size: var(--fs-l);
+  font-weight: 400;
+  line-height: var(--lh-read);
+  letter-spacing: var(--ls-head);
+  margin-bottom: var(--sp-6);
+}
+
+/* 小さな補足 */
 .note-small {
-  font-size: 0.8125rem;
-  line-height: 1.85;
-  color: var(--text-sub);
-  letter-spacing: 0.03em;
+  font-size: var(--fs-s);
+  line-height: var(--lh-tight);
+  color: var(--ink-sub);
 }
-.note-small p { margin-bottom: 0.9em; }
+.note-small p { margin-bottom: var(--sp-3); }
 
-/* ファーストビューの主コピー（明朝・大きく・行間を広く／写真は使わない） */
+/* ファーストビューの主コピー（写真は使わない。文字と余白だけで組む） */
 .hero__copy {
-  font-family: var(--font-serif);
-  /* 上限は 1.8rem。これ以上大きくすると本文幅700pxの中で2行目
-     「「もっと早くやっておけば」と悔やむ方に、」が折り返し、
-     指定どおりの3行構成が崩れる（スマホ幅では折り返すのが自然なのでそのまま） */
-  font-size: clamp(1.4rem, 5.4vw, 1.8rem);
-  font-weight: 500;
-  line-height: 1.95;
-  letter-spacing: 0.08em;
-  margin: 0 0 1.5em;
-}
-
-/* 一文だけを独立させて見せる（最重要の一文・不安を消す一文） */
-.pull-quote {
-  font-family: var(--font-serif);
-  font-size: clamp(1.25rem, 4.2vw, 1.7rem);
-  font-weight: 500;
-  line-height: 1.85;
-  letter-spacing: 0.07em;
-  text-align: center;
-  margin: clamp(48px, 9vw, 88px) auto;
-  max-width: 24em;
-}
-
-/* 目立たせたい一文（帯ではなく、左の細線と地色で静かに） */
-.standout {
-  font-family: var(--font-serif);
-  font-size: clamp(1.02rem, 2.6vw, 1.18rem);
-  font-weight: 500;
-  line-height: 1.85;
+  font-family: var(--font-mincho);
+  font-size: var(--fs-hero);
+  font-weight: 400;
+  line-height: 1.75;
   letter-spacing: 0.06em;
-  border-left: 2px solid var(--olive);
-  padding: 0.2em 0 0.2em 1.1em;
-  margin: 2em 0;
+  margin: 0 0 var(--sp-7);
 }
 
-/* 本文中の強調 */
-.emph { font-weight: 700; }
+/* 一文だけを独立させて見せる（最重要の一文） */
+.pull-quote {
+  font-family: var(--font-mincho);
+  font-size: var(--fs-3xl);
+  font-weight: 400;
+  line-height: 1.8;
+  letter-spacing: 0.06em;
+  text-align: center;
+  margin: var(--sp-10) auto;
+  /* 改行位置はHTML側の <br> で決める。ここは自動折り返しを起こさない幅にする */
+  max-width: 20em;
+  padding-inline: var(--pad-x);
+}
+
+/* 目立たせたい一文（帯や色ではなく、字面と余白で） */
+.standout {
+  font-family: var(--font-mincho);
+  font-size: var(--fs-l);
+  font-weight: 700;
+  line-height: var(--lh-head);
+  letter-spacing: var(--ls-head);
+  color: var(--ink);
+  margin: var(--sp-6) 0;
+}
+
 
 /* ---------------------------------------------------------------------------
    5. 記事本文コンテナ（下層ページ用）
-   .prose の中では h2/h3/p/ul/ol に自動でスタイルが当たる
 --------------------------------------------------------------------------- */
-.prose { font-size: inherit; }
-
-.prose > * + * { margin-top: 1.6em; }
+.prose > * + * { margin-top: var(--sp-5); }
 
 .prose h2 {
-  font-size: clamp(1.28rem, 3.2vw, 1.55rem);
-  font-weight: 600;
-  margin-top: clamp(56px, 8vw, 88px);
-  margin-bottom: 1.1em;
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  margin-top: var(--sp-9);
+  margin-bottom: var(--sp-4);
 }
 .prose h2:first-child { margin-top: 0; }
 
 .prose h3 {
-  font-size: clamp(1.08rem, 2.6vw, 1.22rem);
-  font-weight: 600;
-  margin-top: clamp(36px, 5vw, 56px);
-  margin-bottom: 0.9em;
+  font-size: var(--fs-l);
+  font-weight: 700;
+  margin-top: var(--sp-7);
+  margin-bottom: var(--sp-3);
 }
 
-.prose p { margin: 0 0 1.6em; }
+.prose p { margin: 0 0 1.5em; }
 .prose p:last-child { margin-bottom: 0; }
-
-.prose ul, .prose ol { margin: 0 0 1.8em; }
-
+.prose ul, .prose ol { margin: 0 0 var(--sp-6); }
 .prose strong { font-weight: 700; }
 
 /* ---------------------------------------------------------------------------
    6. リスト
 --------------------------------------------------------------------------- */
-
-/* 「・」始まりのシンプルなリスト（チェックボックス風アイコンは使わない） */
-.list-dot { margin: 0 0 1.8em; }
+.list-dot { margin: 0 0 var(--sp-6); }
 .list-dot > li {
   position: relative;
-  padding-left: 1.15em;
-  margin-bottom: 0.85em;
-  line-height: 1.9;
+  padding-left: 1.1em;
+  margin-bottom: var(--sp-3);
+  line-height: var(--lh-list);
 }
 .list-dot > li:last-child { margin-bottom: 0; }
 .list-dot > li::before {
-  content: "・";
+  content: "";
   position: absolute;
   left: 0;
-  top: 0;
-  color: var(--olive);
+  top: 0.85em;
+  width: 5px;
+  height: 1px;
+  background: var(--rule-strong);
 }
 /* 1行だけ質を変えて強調するとき */
 .list-dot__item--emph {
+  font-family: var(--font-mincho);
   font-weight: 700;
-  font-size: 1.06em;
-  margin-top: 1.5em !important;
+  font-size: var(--fs-l);
+  line-height: var(--lh-head);
+  color: var(--ink);
+  margin-top: var(--sp-5) !important;
 }
-.prose .list-dot > li { margin-bottom: 0.7em; }
+.list-dot__item--emph::before { top: 0.8em; }
 
-/* 記号なしの素のリスト */
-.list-plain > li { margin-bottom: 0.7em; line-height: 1.9; }
+.list-plain > li { margin-bottom: var(--sp-3); line-height: var(--lh-list); }
 .list-plain > li:last-child { margin-bottom: 0; }
 
-/* 番号付きの手順（数字は明朝で大きめ・薄い色。アイコンは使わない） */
-.steps { margin: 0; counter-reset: step; }
+/* 番号付きの手順。数字は明朝、罫の上に置いて「順序」を見せる */
+.steps { margin: 0; }
 .step {
   position: relative;
-  padding-top: clamp(28px, 4vw, 40px);
-  padding-left: clamp(48px, 8vw, 64px);
-  margin-bottom: clamp(30px, 5vw, 44px);
+  padding-top: var(--sp-5);
+  border-top: 1px solid var(--rule);
+  margin-bottom: var(--sp-7);
 }
 .step:last-child { margin-bottom: 0; }
 .step__num {
-  position: absolute;
-  left: 0;
-  top: clamp(20px, 3.4vw, 30px);
-  font-family: var(--font-en);
-  font-size: clamp(1.9rem, 6vw, 2.6rem);
-  font-weight: 500;
+  display: block;
+  font-family: var(--font-mincho);
+  font-size: var(--fs-l);
+  font-weight: 400;
   line-height: 1;
-  color: var(--olive);
-  opacity: 0.55;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.16em;
+  color: var(--ink-sub);
+  margin-bottom: var(--sp-3);
 }
 .step__title {
-  font-family: var(--font-serif);
-  font-size: clamp(1.05rem, 2.8vw, 1.2rem);
-  font-weight: 600;
+  font-family: var(--font-mincho);
+  font-size: var(--fs-l);
+  font-weight: 700;
   letter-spacing: var(--ls-head);
-  line-height: 1.7;
-  margin: 0 0 0.7em;
+  line-height: var(--lh-head);
+  margin: 0 0 var(--sp-3);
 }
 .step__body { margin: 0; }
 .step__body p:last-child { margin-bottom: 0; }
-.step__figure { margin-top: 1.4em; }
+.step__figure { margin-top: var(--sp-5); }
+
+@media (min-width: 768px) {
+  .step {
+    display: grid;
+    grid-template-columns: 4.5em 1fr;
+    column-gap: var(--sp-5);
+  }
+  .step__num { grid-column: 1; margin-bottom: 0; padding-top: 0.35em; }
+  .step__title, .step__body, .step__figure { grid-column: 2; }
+}
 
 /* ---------------------------------------------------------------------------
    7. 囲み（注意書き・カード・定義リスト）
+   枠線＋角丸の汎用ボックスにしない。紙の面として見せる。
 --------------------------------------------------------------------------- */
 
 /* 【必ずお読みください】等。小さく隠さず、誠実さの証明として見せる */
 .notice {
-  background: var(--bg-notice);
-  border: 1px solid var(--hairline-2);
-  border-radius: var(--radius);
-  padding: clamp(22px, 4.5vw, 32px);
-  margin: 2.4em 0;
+  background: var(--paper-deep);
+  padding: var(--sp-6);
+  margin: var(--sp-6) 0;
+  font-size: var(--fs-ms);
+  line-height: var(--lh-tight);
 }
-.section--alt .notice { background: #EFEAE1; }
+.section--plane .notice { background: var(--paper); }
+.section--ink .notice { background: rgba(245, 242, 236, 0.07); }
 .notice__title {
-  font-family: var(--font-serif);
-  font-size: 1rem;
-  font-weight: 600;
+  font-family: var(--font-mincho);
+  font-size: var(--fs-m);
+  font-weight: 700;
   letter-spacing: var(--ls-head);
-  line-height: 1.7;
-  margin: 0 0 0.9em;
+  line-height: var(--lh-head);
+  margin: 0 0 var(--sp-3);
 }
-.notice p { margin-bottom: 1.1em; }
+.notice p { margin-bottom: var(--sp-4); }
 .notice p:last-child, .notice > *:last-child { margin-bottom: 0; }
 .notice .list-dot { margin-bottom: 0; }
+.notice .list-dot > li { line-height: var(--lh-tight); }
 
-/* 白地のカード（囲みたいが注意喚起ではない情報） */
+/* 情報の囲み（注意喚起ではないもの）。上下の罫だけで囲う */
 .card {
-  background: var(--bg);
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius);
-  padding: clamp(22px, 4.5vw, 32px);
-  margin: 2em 0;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  padding: var(--sp-5) 0;
+  margin: var(--sp-6) 0;
 }
-.section--alt .card { background: #FBF9F5; }
 
-/* 項目名＋内容（特定商取引法の表記・アクセス情報など） */
-.info-dl { margin: 0 0 2em; }
+/* 項目名＋内容（特定商取引法の表記など）。実務情報なので行間を詰める */
+.info-dl {
+  margin: 0 0 var(--sp-6);
+  font-size: var(--fs-ms);
+  line-height: var(--lh-tight);
+}
 .info-dl > div {
-  padding: 1.1em 0;
-  border-bottom: 1px solid var(--hairline);
+  padding: var(--sp-4) 0;
+  border-bottom: 1px solid var(--rule);
 }
-.info-dl > div:first-child { border-top: 1px solid var(--hairline); }
+.info-dl > div:first-child { border-top: 1px solid var(--rule); }
 .info-dl dt {
-  font-family: var(--font-serif);
-  font-weight: 600;
-  font-size: 0.95rem;
+  font-family: var(--font-mincho);
+  font-weight: 700;
   letter-spacing: var(--ls-head);
-  line-height: 1.7;
-  margin-bottom: 0.45em;
-  color: var(--text);
+  line-height: var(--lh-head);
+  margin-bottom: var(--sp-2);
+  color: var(--ink);
 }
-.info-dl dd { margin: 0; line-height: 1.9; }
+.info-dl dd { margin: 0; }
 
 @media (min-width: 768px) {
   .info-dl > div {
     display: grid;
-    grid-template-columns: 13em 1fr;
-    gap: 1.5em;
-    align-items: start;
+    grid-template-columns: 12em 1fr;
+    gap: var(--sp-5);
+    align-items: baseline;
   }
   .info-dl dt { margin-bottom: 0; }
 }
 
 /* 依頼者が後で記入する箇所 */
 .tbd {
-  color: var(--text-sub);
-  background: var(--bg-notice);
+  color: var(--ink-sub);
+  background: var(--paper-deep);
   padding: 0.1em 0.5em;
-  border-radius: var(--radius-s);
-  font-size: 0.94em;
 }
+.section--plane .tbd { background: var(--paper); }
 
 /* ---------------------------------------------------------------------------
    8. 表組み
@@ -481,40 +589,40 @@ strong, b { font-weight: 700; }
 .table-wrap {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  margin: 2em 0;
+  margin: var(--sp-6) 0;
 }
 .table {
   width: 100%;
   min-width: 340px;
   border-collapse: collapse;
-  font-size: 0.95rem;
-  line-height: 1.8;
+  font-size: var(--fs-ms);
+  line-height: var(--lh-tight);
 }
 .table th, .table td {
   text-align: left;
-  padding: 0.95em 1em;
-  border-bottom: 1px solid var(--hairline);
+  padding: var(--sp-4) var(--sp-4) var(--sp-4) 0;
+  border-bottom: 1px solid var(--rule);
   vertical-align: top;
 }
 .table thead th {
-  font-family: var(--font-serif);
-  font-weight: 600;
+  font-family: var(--font-mincho);
+  font-weight: 700;
   letter-spacing: var(--ls-head);
-  border-bottom: 1px solid var(--hairline-2);
+  border-bottom: 1px solid var(--rule-strong);
   white-space: nowrap;
 }
 .table tbody th {
   font-weight: 400;
   white-space: nowrap;
-  color: var(--text);
+  color: var(--ink);
 }
 
 /* ---------------------------------------------------------------------------
    9. 写真プレースホルダ
    ---------------------------------------------------------------------------
-   差し替え手順（後続エージェント・依頼者向け）:
+   差し替え手順:
      1. images/ に画像を置く（例: images/face.jpg）
-     2. <figure class="ph ph--portrait"> の中の <span class="ph__label">…</span> を
+     2. <div class="ph ph--portrait"> の中の <span class="ph__label">…</span> を
         <img class="ph__img" src="images/face.jpg" alt="…"> に置き換えるだけ
    ※ フィルター・CSS加工は一切かけない。顔写真は正方形か縦長（円形にしない）
 --------------------------------------------------------------------------- */
@@ -523,18 +631,18 @@ strong, b { font-weight: 700; }
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg-ph);
-  border-radius: var(--radius);
+  background: var(--paper-sink);
   overflow: hidden;
   aspect-ratio: 4 / 3;
 }
+.section--plane .ph { background: var(--paper-sink); }
 .ph__label {
-  font-size: 0.75rem;
-  letter-spacing: 0.14em;
-  color: var(--text-ph);
-  line-height: 1.6;
+  font-size: var(--fs-xs);
+  letter-spacing: 0.16em;
+  color: var(--ink-faint);
+  line-height: var(--lh-label);
   text-align: center;
-  padding: 0.5em;
+  padding: var(--sp-2);
 }
 .ph__img {
   width: 100%;
@@ -543,207 +651,163 @@ strong, b { font-weight: 700; }
   display: block;
   filter: none;
 }
-.ph--portrait { aspect-ratio: 3 / 4; }   /* 顔写真（縦長） */
-.ph--square   { aspect-ratio: 1 / 1; }   /* 顔写真（正方形） */
+.ph--portrait { aspect-ratio: 3 / 4; }
+.ph--square   { aspect-ratio: 1 / 1; }
 .ph--photo43  { aspect-ratio: 4 / 3; }
 .ph--wide     { aspect-ratio: 16 / 9; }
 
-/* 顔写真の置き場所。左右に寄せず、幅を絞る */
 .ph-face {
-  width: min(260px, 62%);
-  margin: 0 0 1.8em;
-}
-.ph-face--center { margin-inline: auto; }
-
-.ph-caption {
-  font-size: 0.78rem;
-  color: var(--text-sub);
-  letter-spacing: 0.06em;
-  margin-top: 0.7em;
-  line-height: 1.7;
+  width: min(240px, 58%);
+  margin: 0 0 var(--sp-6);
 }
 
-/* 複数枚のグリッド */
+
 .ph-grid {
   display: grid;
-  gap: 12px;
-  margin: 0 0 2em;
+  gap: var(--sp-2);
+  margin: 0 0 var(--sp-6);
 }
 .ph-grid--2 { grid-template-columns: repeat(2, 1fr); }
 @media (min-width: 768px) {
-  .ph-grid { gap: 16px; }
+  .ph-grid { gap: var(--sp-3); }
 }
 
 /* ---------------------------------------------------------------------------
    10. 料金表示（価格を主表示、時間は補足。並列にしない）
 --------------------------------------------------------------------------- */
-.price { margin: 0 0 2.2em; }
+.price { margin: 0 0 var(--sp-7); }
 .price__name {
-  font-family: var(--font-serif);
-  font-size: 1rem;
-  font-weight: 600;
+  font-family: var(--font-mincho);
+  font-size: var(--fs-ms);
+  font-weight: 700;
   letter-spacing: var(--ls-head);
-  margin: 0 0 0.5em;
+  margin: 0 0 var(--sp-3);
 }
 .price__amount {
-  font-family: var(--font-serif);
-  font-size: clamp(2rem, 8vw, 2.9rem);
-  font-weight: 600;
-  line-height: 1.25;
-  letter-spacing: 0.02em;
+  font-family: var(--font-mincho);
+  font-size: var(--fs-4xl);
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+  color: var(--ink);
   margin: 0;
 }
-.price__amount .price__unit {
-  font-size: 0.42em;
-  font-weight: 500;
-  letter-spacing: 0.08em;
-  margin-left: 0.4em;
-}
+.price__amount .price__unit,
 .price__amount .price__times {
-  font-size: 0.4em;
-  font-weight: 500;
+  font-size: 0.34em;
+  font-weight: 400;
   letter-spacing: 0.08em;
-  margin-right: 0.5em;
 }
+.price__amount .price__unit  { margin-left: 0.4em; }
+.price__amount .price__times { margin-right: 0.5em; }
 .price__slot {
-  font-size: 0.9rem;
-  color: var(--text-sub);
+  font-size: var(--fs-s);
+  color: var(--ink-sub);
   letter-spacing: 0.06em;
-  margin: 1.1em 0 0;
+  line-height: var(--lh-tight);
+  margin: var(--sp-4) 0 0;
 }
 
 /* ---------------------------------------------------------------------------
    11. FAQ（details / summary）
 --------------------------------------------------------------------------- */
-.faq { border-top: 1px solid var(--hairline-2); }
-.faq__item { border-bottom: 1px solid var(--hairline-2); }
+.faq { border-top: 1px solid var(--rule); }
+.faq__item { border-bottom: 1px solid var(--rule); }
 
 .faq__q {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.9em;
+  display: block;
   cursor: pointer;
   list-style: none;
-  padding: 1.3em 2.2em 1.3em 0;
+  padding: var(--sp-5) var(--sp-6) var(--sp-5) 0;
   position: relative;
-  font-family: var(--font-serif);
-  font-size: 1.02rem;
-  font-weight: 600;
+  font-family: var(--font-mincho);
+  font-size: var(--fs-m);
+  font-weight: 700;
   letter-spacing: var(--ls-head);
-  line-height: 1.75;
+  line-height: var(--lh-head);
+  color: var(--ink);
 }
 .faq__q::-webkit-details-marker { display: none; }
-.faq__q::before {
-  content: "Q";
-  font-family: var(--font-en);
-  font-size: 1.05em;
-  font-weight: 500;
-  color: var(--olive);
-  flex: 0 0 auto;
-  line-height: inherit;
-}
-/* 開閉の記号（アイコン画像ではなく、細い線を2本） */
+/* 開閉の記号は細い線のみ。アイコンは使わない */
 .faq__q::after {
   content: "";
   position: absolute;
-  right: 4px;
-  top: 1.9em;
-  width: 13px;
-  height: 13px;
+  right: 0;
+  top: calc(var(--sp-5) + 0.55em);
+  width: 12px;
+  height: 12px;
   background:
-    linear-gradient(var(--text-sub), var(--text-sub)) center / 13px 1px no-repeat,
-    linear-gradient(var(--text-sub), var(--text-sub)) center / 1px 13px no-repeat;
+    linear-gradient(var(--ink-sub), var(--ink-sub)) center / 12px 1px no-repeat,
+    linear-gradient(var(--ink-sub), var(--ink-sub)) center / 1px 12px no-repeat;
   transition: transform 0.25s var(--ease);
 }
 .faq__item[open] .faq__q::after {
-  background: linear-gradient(var(--text-sub), var(--text-sub)) center / 13px 1px no-repeat;
-  transform: rotate(180deg);
+  background: linear-gradient(var(--ink-sub), var(--ink-sub)) center / 12px 1px no-repeat;
 }
-.faq__q:hover { color: var(--accent); }
 
 .faq__a {
-  display: flex;
-  gap: 0.9em;
-  padding: 0 0 1.7em;
+  padding: 0 0 var(--sp-5);
   margin: 0;
+  font-size: var(--fs-ms);
+  line-height: var(--lh-list);
+  color: var(--ink-body);
 }
-.faq__a::before {
-  content: "A";
-  font-family: var(--font-en);
-  font-size: 1.05em;
-  font-weight: 500;
-  color: var(--text-sub);
-  flex: 0 0 auto;
-  line-height: 1.9;
-}
-.faq__a > div { flex: 1 1 auto; }
-.faq__a p { margin-bottom: 1em; }
+.faq__a p { margin-bottom: var(--sp-3); }
 .faq__a p:last-child { margin-bottom: 0; }
 
 /* ---------------------------------------------------------------------------
    12. CTA
+   サイト内で唯一、彩度のある色を持つ場所。ここ以外に緑を使わない。
 --------------------------------------------------------------------------- */
 .cta-block {
-  margin: clamp(40px, 7vw, 64px) 0 0;
-  text-align: center;
+  margin: var(--sp-8) 0 0;
 }
 .cta-block--left { text-align: left; }
 .cta-block__note {
-  margin-top: 1.4em;
-  font-size: 0.8125rem;
-  line-height: 1.85;
-  color: var(--text-sub);
-  letter-spacing: 0.03em;
+  margin-top: var(--sp-4);
+  font-size: var(--fs-s);
+  line-height: var(--lh-tight);
+  color: var(--ink-sub);
 }
-.section--dark .cta-block__note { color: var(--on-dark-sub); }
 
 .btn-line {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-height: 58px;
-  padding: 0.85em 2.6em;
+  padding: 0.8em 2.4em;
   background: var(--line);
-  border: 1px solid var(--line-deep);
   border-radius: var(--radius-btn);
-  box-shadow: 0 1px 3px rgba(44, 52, 64, 0.12);
   color: #FFFFFF;
-  font-family: var(--font-sans);
-  font-size: 1.06rem;
+  font-family: var(--font-gothic);
+  font-size: var(--fs-m);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-decoration: none;
-  transition: background-color 0.2s var(--ease), transform 0.2s var(--ease);
+  transition: background-color 0.2s var(--ease), transform 0.15s var(--ease);
 }
 .btn-line:hover,
 .btn-line:focus-visible {
   background: var(--line-deep);
   color: #FFFFFF;
+  text-decoration: none;
 }
 .btn-line:active { transform: translateY(1px); }
 .btn-line--block { display: flex; width: 100%; }
 
-/* テキストリンク（下層ページへの導線）。アイコンは使わず「▶」1文字のみ */
+/* 下層ページへの導線。記号は足さず、罫と字面だけで示す */
 .link-more {
   display: inline-block;
-  font-family: var(--font-serif);
-  font-size: 0.98rem;
-  font-weight: 600;
+  font-family: var(--font-mincho);
+  font-size: var(--fs-ms);
+  font-weight: 700;
   letter-spacing: var(--ls-head);
-  color: var(--accent);
+  color: var(--ink);
   text-decoration: none;
-  border-bottom: 1px solid var(--hairline-2);
-  padding-bottom: 0.3em;
-  margin-top: 0.6em;
+  border-bottom: 1px solid var(--rule-strong);
+  padding-bottom: var(--sp-1);
 }
-.link-more::before {
-  content: "▶";
-  font-size: 0.7em;
-  color: var(--olive);
-  margin-right: 0.7em;
-  vertical-align: 0.12em;
-}
-.link-more:hover { border-bottom-color: var(--accent); }
+.link-more:hover { border-bottom-color: var(--ink); }
 
 /* スマホ画面下部の固定CTA */
 .fixed-cta {
@@ -752,12 +816,12 @@ strong, b { font-weight: 700; }
   right: 0;
   bottom: 0;
   z-index: 60;
-  padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
-  background: rgba(253, 252, 250, 0.95);
-  border-top: 1px solid var(--hairline);
+  padding: var(--sp-3) var(--sp-4) calc(var(--sp-3) + env(safe-area-inset-bottom, 0px));
+  background: rgba(250, 249, 247, 0.96);
+  border-top: 1px solid var(--rule);
   transition: transform 0.28s var(--ease), opacity 0.28s var(--ease);
 }
-.fixed-cta .btn-line { min-height: 52px; font-size: 1rem; }
+.fixed-cta .btn-line { min-height: 52px; }
 .fixed-cta.is-hidden {
   transform: translateY(110%);
   opacity: 0;
@@ -766,7 +830,6 @@ strong, b { font-weight: 700; }
 @media (min-width: 900px) {
   .fixed-cta { display: none; }
 }
-/* 固定CTAに隠れないよう下部に余白 */
 @media (max-width: 899px) {
   body { padding-bottom: 84px; }
 }
@@ -778,22 +841,22 @@ strong, b { font-weight: 700; }
   position: sticky;
   top: 0;
   z-index: 50;
-  background: rgba(253, 252, 250, 0.94);
-  border-bottom: 1px solid var(--hairline);
-  backdrop-filter: saturate(120%) blur(6px);
+  background: rgba(250, 249, 247, 0.95);
+  border-bottom: 1px solid var(--rule);
+  backdrop-filter: saturate(115%) blur(6px);
 }
 .site-header__inner {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: var(--sp-4);
   min-height: 62px;
   max-width: var(--measure-wide);
   margin-inline: auto;
   padding-inline: var(--pad-x);
 }
 @media (min-width: 768px) {
-  .site-header__inner { padding-inline: 32px; min-height: 72px; }
+  .site-header__inner { padding-inline: var(--sp-6); min-height: 72px; }
 }
 
 .brand {
@@ -801,39 +864,39 @@ strong, b { font-weight: 700; }
   flex-direction: column;
   gap: 2px;
   text-decoration: none;
-  color: var(--text);
-  line-height: 1.3;
+  color: var(--ink);
+  line-height: var(--lh-label);
 }
 .brand__name {
-  font-family: var(--font-en);
-  font-size: 1.16rem;
-  font-weight: 500;
-  letter-spacing: 0.13em;
+  font-family: var(--font-mincho);
+  font-size: var(--fs-l);
+  font-weight: 400;
+  letter-spacing: 0.1em;
 }
 .brand__sub {
-  font-size: 0.66rem;
-  letter-spacing: 0.16em;
-  color: var(--text-sub);
+  font-size: var(--fs-xs);
+  letter-spacing: 0.14em;
+  color: var(--ink-sub);
 }
 
 .gnav__list {
   display: flex;
-  gap: clamp(14px, 1.8vw, 28px);
+  gap: clamp(var(--sp-3), 1.8vw, var(--sp-6));
   align-items: center;
 }
 .gnav__link {
-  font-size: 0.86rem;
-  letter-spacing: 0.06em;
-  color: var(--text);
+  font-size: var(--fs-s);
+  letter-spacing: 0.05em;
+  color: var(--ink-body);
   text-decoration: none;
-  padding: 0.4em 0;
+  padding: var(--sp-1) 0;
   border-bottom: 1px solid transparent;
   white-space: nowrap;
 }
-.gnav__link:hover { border-bottom-color: var(--olive); }
+.gnav__link:hover { border-bottom-color: var(--rule-strong); }
 .gnav__link.is-current {
-  border-bottom-color: var(--olive);
-  font-weight: 500;
+  color: var(--ink);
+  border-bottom-color: var(--ink);
 }
 
 /* ハンバーガー（線3本のみ。アイコンフォントは使わない） */
@@ -855,7 +918,7 @@ strong, b { font-weight: 700; }
   left: 11px;
   width: 22px;
   height: 1px;
-  background: var(--text);
+  background: var(--ink);
   transition: transform 0.25s var(--ease), opacity 0.2s var(--ease);
 }
 .nav-toggle__bar { top: 21px; }
@@ -872,8 +935,8 @@ strong, b { font-weight: 700; }
     left: 0;
     right: 0;
     top: 100%;
-    background: var(--bg);
-    border-bottom: 1px solid var(--hairline);
+    background: var(--paper);
+    border-bottom: 1px solid var(--rule);
     display: none;
   }
   .site-header.is-open .gnav { display: block; }
@@ -881,100 +944,90 @@ strong, b { font-weight: 700; }
     flex-direction: column;
     align-items: stretch;
     gap: 0;
-    padding: 6px var(--pad-x) 18px;
+    padding: var(--sp-1) var(--pad-x) var(--sp-4);
   }
   .gnav__link {
     display: block;
-    padding: 0.95em 0;
-    border-bottom: 1px solid var(--hairline);
-    font-size: 0.95rem;
+    padding: var(--sp-4) 0;
+    border-bottom: 1px solid var(--rule);
+    font-size: var(--fs-ms);
   }
-  .gnav__link:hover { border-bottom-color: var(--hairline); }
-  .gnav__link.is-current { border-bottom-color: var(--hairline); color: var(--accent); }
+  .gnav__link:hover { border-bottom-color: var(--rule); }
+  .gnav__link.is-current { border-bottom-color: var(--rule); }
 }
 
 /* ---------------------------------------------------------------------------
    14. フッター
 --------------------------------------------------------------------------- */
 .site-footer {
-  background: var(--bg-alt);
-  border-top: 1px solid var(--hairline);
-  padding-block: clamp(40px, 6vw, 64px);
+  background: var(--paper-deep);
+  padding-block: var(--sp-8);
+  font-size: var(--fs-s);
+  line-height: var(--lh-tight);
 }
 .site-footer__inner {
   max-width: var(--measure);
   margin-inline: auto;
   padding-inline: var(--pad-x);
 }
+@media (min-width: 768px) {
+  .site-footer__inner { padding-inline: var(--sp-6); }
+}
 .site-footer__brand {
-  font-family: var(--font-en);
-  font-size: 1.1rem;
-  letter-spacing: 0.13em;
-  margin-bottom: 0.4em;
+  font-family: var(--font-mincho);
+  font-size: var(--fs-l);
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  color: var(--ink);
+  margin-bottom: var(--sp-2);
 }
 .site-footer__addr {
-  font-size: 0.82rem;
-  color: var(--text-sub);
-  line-height: 1.9;
+  color: var(--ink-sub);
   font-style: normal;
-  margin-bottom: 1.8em;
+  margin-bottom: var(--sp-6);
 }
 .footer-nav__list,
 .footer-links__list {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.9em 1.6em;
-  margin-bottom: 1.6em;
+  gap: var(--sp-3) var(--sp-5);
+  margin-bottom: var(--sp-5);
 }
 .footer-nav__list a,
 .footer-links__list a {
-  font-size: 0.86rem;
-  color: var(--text);
+  color: var(--ink-body);
   text-decoration: none;
   border-bottom: 1px solid transparent;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
 }
-.footer-links__list a { font-size: 0.8rem; color: var(--text-sub); }
+.footer-links__list a { font-size: var(--fs-xs); color: var(--ink-sub); }
 .footer-nav__list a:hover,
-.footer-links__list a:hover { border-bottom-color: var(--olive); }
+.footer-links__list a:hover { border-bottom-color: var(--rule-strong); }
 
 .site-footer__note {
-  font-size: 0.78rem;
-  line-height: 1.85;
-  color: var(--text-sub);
-  border-top: 1px solid var(--hairline-2);
-  padding-top: 1.6em;
-  margin-top: 0.4em;
+  font-size: var(--fs-xs);
+  line-height: var(--lh-tight);
+  color: var(--ink-sub);
+  border-top: 1px solid var(--rule-strong);
+  padding-top: var(--sp-5);
+  margin-top: var(--sp-2);
 }
 .site-footer__copy {
-  font-family: var(--font-en);
-  font-size: 0.76rem;
+  font-family: var(--font-mincho);
+  font-size: var(--fs-xs);
   letter-spacing: 0.1em;
-  color: var(--text-sub);
-  margin-top: 1.4em;
+  color: var(--ink-sub);
+  margin-top: var(--sp-4);
 }
 
 /* ---------------------------------------------------------------------------
-   15. 装飾（細い曲線の区切り。目立たせない）
---------------------------------------------------------------------------- */
-.divider {
-  display: block;
-  width: 100%;
-  max-width: 320px;
-  margin: clamp(36px, 6vw, 56px) auto;
-  opacity: 0.15;
-  color: var(--olive);
-}
-.divider svg { width: 100%; height: auto; display: block; }
-
-/* ---------------------------------------------------------------------------
-   16. フェードイン（JSが .reveal に .reveal-ready を付与してから観測する）
+   15. フェードイン
+   全要素に一律でかけない。控えめに、短く。
 --------------------------------------------------------------------------- */
 .reveal-ready {
   opacity: 0;
-  transform: translateY(14px);
-  transition: opacity 0.7s var(--ease), transform 0.7s var(--ease);
-  will-change: opacity, transform;
+  transform: translateY(8px);
+  transition: opacity 0.5s var(--ease), transform 0.5s var(--ease);
 }
 .reveal-ready.is-visible {
   opacity: 1;
@@ -982,18 +1035,15 @@ strong, b { font-weight: 700; }
 }
 
 /* ---------------------------------------------------------------------------
-   17. ユーティリティ
+   16. ユーティリティ
 --------------------------------------------------------------------------- */
-.u-center    { text-align: center; }
-.u-nowrap    { white-space: nowrap; }
-.u-mt-0  { margin-top: 0 !important; }
-.u-mt-s  { margin-top: 1em !important; }
-.u-mt-m  { margin-top: 2em !important; }
-.u-mt-l  { margin-top: clamp(40px, 7vw, 72px) !important; }
-.u-mb-0  { margin-bottom: 0 !important; }
-.u-mb-s  { margin-bottom: 1em !important; }
-.u-mb-m  { margin-bottom: 2em !important; }
-.u-mb-l  { margin-bottom: clamp(40px, 7vw, 72px) !important; }
+.u-mt-0 { margin-top: 0 !important; }
+.u-mt-m { margin-top: var(--sp-6) !important; }
+.u-mt-l { margin-top: var(--sp-8) !important; }
+.u-mb-0 { margin-bottom: 0 !important; }
+.u-mb-s { margin-bottom: var(--sp-4) !important; }
+.u-mb-m { margin-bottom: var(--sp-6) !important; }
+.u-mb-l { margin-bottom: var(--sp-8) !important; }
 
 .visually-hidden {
   position: absolute !important;
@@ -1011,19 +1061,16 @@ strong, b { font-weight: 700; }
   left: -9999px;
   top: 0;
   z-index: 100;
-  background: var(--accent);
+  background: var(--ink);
   color: #FFFFFF;
-  padding: 0.8em 1.4em;
+  padding: var(--sp-3) var(--sp-5);
   text-decoration: none;
-  font-size: 0.9rem;
+  font-size: var(--fs-ms);
 }
-.skip-link:focus {
-  left: 0;
-  color: #FFFFFF;
-}
+.skip-link:focus { left: 0; color: #FFFFFF; }
 
 /* ---------------------------------------------------------------------------
-   18. 動きを減らす設定・印刷
+   17. 動きを減らす設定・印刷
 --------------------------------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
@@ -1037,8 +1084,13 @@ strong, b { font-weight: 700; }
 }
 
 @media print {
-  .site-header, .fixed-cta, .divider { display: none !important; }
+  .site-header, .fixed-cta { display: none !important; }
   body { padding-bottom: 0; background: #FFFFFF; }
-  .section { padding-block: 24px; background: #FFFFFF !important; color: #000000; }
-  .faq__item > .faq__a { display: flex !important; }
+  .section, .section--plane, .section--ink {
+    padding-block: var(--sp-5);
+    background: #FFFFFF !important;
+    color: #000000;
+  }
+  .section--ink h1, .section--ink h2, .section--ink h3 { color: #000000; }
+  .faq__item > .faq__a { display: block !important; }
 }
