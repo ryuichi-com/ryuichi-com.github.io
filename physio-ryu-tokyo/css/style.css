@@ -661,6 +661,22 @@ strong, b { font-weight: 700; }
   margin: 0 0 var(--sp-6);
 }
 
+/* 国家資格の保有を示すタグ。氏名の直前に置く。
+   資格は「行為」ではなく「肩書・信頼シグナル」として見せるための要素。
+   色は足さない（彩度を持つのはCTAだけ）。墨の細枠と字面だけで示す */
+.credential {
+  display: inline-block;
+  font-family: var(--font-mincho);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  line-height: var(--lh-label);
+  color: var(--ink);
+  border: 1px solid var(--ink);
+  padding: var(--sp-2) var(--sp-4);
+  margin: 0 0 var(--sp-4);
+}
+
 
 .ph-grid {
   display: grid;
