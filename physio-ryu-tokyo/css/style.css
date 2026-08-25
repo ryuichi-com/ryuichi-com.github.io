@@ -10,11 +10,10 @@
       「色が付いている＝そこを押す」という規律を全ページで守ること。
       装飾のために色を足さない。差し色を増やした瞬間にこの設計は壊れる。
 
-   2. 柱（はしら）で読者を導く。背景の塗り分けでは区切らない。
-      セクションに data-chapter="三" data-chapter-label="なぜ、戻るのか" を書くと、
-      PCでは本文左の余白に、スマホでは見出しの上に「柱」が出る。
-      雑誌の柱と同じで、今どこを読んでいるかを示す。
-      交互に背景色を変えて区切る処理は使わない。
+   2. セクションを区切るのは、余白の落差と見出しの級数だけ。
+      交互に背景色を変える処理は使わない。
+      章番号や章題のラベルも置かない（見出しと重複して、
+      小さな見出しが二重に並ぶだけになるため）。
 
    3. セクションには軽重がある。
       .section--major … 章の山場（見出しを大きく、余白を広く）
@@ -71,7 +70,7 @@
   --ink:         #23211E;  /* 墨。見出し・濃色面の地 */
   --ink-body:    #35322D;  /* 本文 */
   --ink-sub:     #6F6961;  /* 副次テキスト（紙の上で 5.6:1） */
-  --ink-faint:   #A79F94;  /* 柱の番号・プレースホルダの用途名 */
+  --ink-faint:   #A79F94;  /* 写真プレースホルダの枠内文字 */
 
   --rule:        #DCD5CA;  /* 罫 */
   --rule-strong: #C4BBAC;
@@ -89,7 +88,7 @@
   --font-gothic: "Zen Kaku Gothic New", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif;
 
   /* --- 文字サイズ（1.25倍の9段階。この外の値を書かない） ----------------- */
-  --fs-xs:  0.75rem;                              /* 12px ラベル・柱 */
+  --fs-xs:  0.75rem;                              /* 12px ラベル・補足の補足 */
   --fs-s:   0.8125rem;                            /* 13px 補足 */
   --fs-ms:  0.9375rem;                            /* 15px 小 */
   --fs-m:   1rem;                                 /* 本文 */
@@ -130,10 +129,6 @@
   --measure:        700px;  /* 本文の可読幅 */
   --measure-wide:   980px;
   --measure-hero:   860px;  /* ヒーローは本文幅の制約から外す */
-  /* PCで柱を置く左の余白。柱を出す最小幅は
-     (measure / 2 + gutter) * 2 = (350 + 240) * 2 = 1180px なので、
-     余裕をみて 1240px 以上でのみ表示する（下の @media と対応） */
-  --gutter:         240px;
   --pad-x:          24px;
 
   --radius-btn: 4px;        /* 角丸はボタンだけ。面は紙なので角を丸めない */
@@ -241,66 +236,6 @@ strong, b { font-weight: 700; }
 .section--ink .cta-block__note { color: var(--on-ink-sub); }
 .section--ink a { color: var(--on-ink); text-decoration-color: rgba(245, 242, 236, 0.5); }
 .section--ink .rule { border-top-color: rgba(245, 242, 236, 0.35); }
-
-/* --- 柱（はしら） -----------------------------------------------------------
-   HTMLに data-chapter="三" data-chapter-label="なぜ、戻るのか" を書くだけで出る。
-   スマホでは見出しの上に1行、PCでは本文左の余白に縦に置く。            */
-.section[data-chapter]::before,
-.section[data-chapter]::after {
-  color: var(--ink-sub);
-  font-family: var(--font-mincho);
-  pointer-events: none;
-}
-
-/* スマホ：本文の上に「三 ── なぜ、戻るのか」 */
-.section[data-chapter]::before {
-  content: attr(data-chapter) "  ──  " attr(data-chapter-label);
-  display: block;
-  width: 100%;
-  max-width: var(--measure);
-  margin: 0 auto var(--sp-5);
-  padding-inline: var(--pad-x);
-  font-size: var(--fs-xs);
-  letter-spacing: 0.18em;
-  line-height: var(--lh-label);
-}
-.section[data-chapter]::after { content: none; }
-
-@media (min-width: 768px) {
-  .section[data-chapter]::before { padding-inline: var(--sp-6); }
-}
-
-/* PC：本文の左の余白に、番号を大きく、章題を小さく置く */
-@media (min-width: 1240px) {
-  .section[data-chapter]::before,
-  .section[data-chapter]::after {
-    position: absolute;
-    left: calc(50% - var(--measure) / 2 - var(--gutter));
-    width: calc(var(--gutter) - var(--sp-7));
-    margin: 0;
-    padding: 0;
-    text-align: right;
-  }
-  .section[data-chapter]::before {
-    content: attr(data-chapter);
-    top: var(--sp-9);
-    font-size: var(--fs-2xl);
-    line-height: 1;
-    color: var(--ink-faint);
-    letter-spacing: 0;
-  }
-  .section[data-chapter]::after {
-    content: attr(data-chapter-label);
-    top: calc(var(--sp-9) + var(--sp-7));
-    font-size: var(--fs-xs);
-    letter-spacing: 0.16em;
-    line-height: var(--lh-label);
-  }
-  .section--major[data-chapter]::before { top: var(--sp-10); }
-  .section--major[data-chapter]::after  { top: calc(var(--sp-10) + var(--sp-7)); }
-  .section--minor[data-chapter]::before { top: var(--sp-8); }
-  .section--minor[data-chapter]::after  { top: calc(var(--sp-8) + var(--sp-7)); }
-}
 
 /* ---------------------------------------------------------------------------
    4. 見出し・テキスト部品
