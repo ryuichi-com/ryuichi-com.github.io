@@ -29,6 +29,16 @@
       読ませる本文は広く（--lh-read 1.9）、実務情報は詰める（--lh-tight 1.65）。
       全部が同じ広さだと緩急が消えて締まりのない紙面になる。
 
+   6. 本文に <br> を入れない。折り返しはブラウザにそろえさせる。
+      日本語は語の途中でも折り返すため、放っておくと「リハビリテーシ／ョン」と割れる。
+      かといって <br> で行を固定すると、その行が画面幅より長いときに端数が出て、
+      今度は「す。」「を、」だけの行が生まれる（スマホでは必ずそうなる）。
+      折り返しは word-break: auto-phrase / text-wrap: pretty・balance に任せる。
+      詳しくは「2. リセット / 基本」の折り返しの項。
+      <br> を使ってよいのは、どの画面幅でも折り返さない短い行だけ
+      （ヒーローの主コピー、.pull-quote、住所・営業時間などの箇条）。
+      それ以外で行を切りたいときは .u-br-pc / .u-br-sp / .u-nw を使う。
+
    【禁止】金色・グラデーション・筆記体・装飾アイコン・絵文字。
            アニメーションは控えめなフェードインのみ（prefers-reduced-motion 対応）。
 
@@ -37,7 +47,7 @@
    - 要素は二重アンダースコア             : .step__num / .site-header__inner
    - 変化形（モディファイア）は二重ハイフン: .section--major / .ph--portrait
    - 状態クラスは is- 接頭辞              : .is-open / .is-visible / .is-current
-   - 汎用ユーティリティは u- 接頭辞       : .u-mt-l / .u-mb-0
+   - 汎用ユーティリティは u- 接頭辞       : .u-mt-l / .u-mb-0 / .u-br-pc / .u-nw
 
    【主要クラス早見】
    レイアウト : .wrap .wrap--hero
@@ -93,15 +103,24 @@
   --fs-ms:  0.9375rem;                            /* 15px 小 */
   --fs-m:   1rem;                                 /* 本文 */
   --fs-l:   1.25rem;                              /* リード・小見出し */
-  --fs-xl:  clamp(1.32rem, 1rem + 1.4vw, 1.5625rem);   /* 節見出し */
-  --fs-2xl: clamp(1.5rem, 1.1rem + 1.9vw, 1.953rem);   /* セクション見出し */
-  --fs-3xl: clamp(1.75rem, 1.2rem + 2.6vw, 2.441rem);  /* 山場・ページ見出し */
+  --fs-xl:  clamp(1.25rem, 0.95rem + 1.3vw, 1.5625rem); /* 節見出し */
+  --fs-2xl: clamp(1.375rem, 0.95rem + 1.75vw, 1.953rem);/* セクション見出し */
+  --fs-3xl: clamp(1.5rem, 1rem + 2.2vw, 2.441rem);      /* 山場・ページ見出し */
+  /* 見出し3段の下限は、スマホでの折り返しから決めている。
+     たとえば「病院を出たあとの身体を、どう保っていくか」は、
+     390px幅で 27px を超えると2行に収まらず、
+     「病院を出たあとの／身体を、／どう保っていくか」と3行に割れる。
+     上限（1.5625 / 1.953 / 2.441rem）はスケールどおりで、パソコンでの見え方は変わらない。 */
   --fs-4xl: clamp(2rem, 1.2rem + 3.6vw, 3.052rem);     /* 価格 */
   /* ヒーロー専用。上限 2.3rem は、主コピー2行目（20字）が
      ヒーロー幅860px の中で折り返さずに収まる最大値
      （20字 × 36.8px × 1.06 = 780px < 796px）。
-     これ以上大きくすると指定どおりの3行構成が崩れる */
-  --fs-hero: clamp(1.5rem, 1rem + 2.4vw, 2.3rem);
+     これ以上大きくすると指定どおりの3行構成が崩れる。
+     下限側を 0.9rem + 2.4vw にしてあるのは、768px幅でも
+     2行目が折り返さずに3行構成を保てる大きさに収めるため。
+     スマホでは3行に収まらないので4行になる。そのとき
+     かぎ括弧の中で切れないよう、HTML側で引用部分を .u-nw にしてある */
+  --fs-hero: clamp(1.375rem, 0.9rem + 2.4vw, 2.3rem);
 
   /* --- 余白（4px基準の10段階。この外の値を書かない） --------------------- */
   --sp-1: 4px;
@@ -159,8 +178,43 @@ body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   overflow-wrap: break-word;
-  word-break: normal;
   line-break: strict;
+}
+
+/* 日本語の折り返しを、文字数まかせではなく文節の切れ目にそろえる。
+   全ページの <html> に lang="ja" が入っていることが前提。これが無いと効かない。
+
+   word-break: auto-phrase
+     「回復期リハビリテーシ／ョン」のような語の途中での分断と、
+     行末に1〜2文字だけ残る折り返しを避ける。Chrome / Edge で有効。
+   text-wrap: pretty
+     auto-phrase 非対応（Safari・Firefox）での保険。
+     最終行が極端に短くなるのを抑える。
+
+   どちらも非対応ブラウザでは無視され、従来どおり任意の位置で折り返すだけなので、
+   崩れることはない。
+
+   固い改行（<br>）は原則として本文に入れない。入れると、その行が
+   画面幅より長いときに必ず端数が出て、1〜2文字の行が生まれる。
+   <br> を使ってよいのは、どの幅でも折り返さない短い行だけ
+   （ヒーローの主コピー、引用、住所・営業時間などの箇条）。 */
+body {
+  word-break: auto-phrase;
+  text-wrap: pretty;
+}
+
+/* 見出し・設問・定義語は「短くて2〜3行になる」文字列なので、
+   pretty（最終行だけ守る）では行末に2〜3文字が残る。
+   balance は全行の長さをそろえるので、こちらを使う。
+   本文には使わない。長文に balance をかけると1行が短くなりすぎる */
+h1, h2, h3, h4, summary, dt, li, .lead, .flow-note, .pull-quote, .price__name {
+  text-wrap: balance;
+}
+
+/* ただし <br> で組み方を指定してある見出しは、balance に組み直させない。
+   作者が決めた位置で切れなくなるため */
+h1:has(br), h2:has(br), h3:has(br), h4:has(br), .pull-quote:has(br) {
+  text-wrap: pretty;
 }
 
 @media (min-width: 768px) {
@@ -1135,10 +1189,29 @@ strong, b { font-weight: 700; }
 .u-mb-m { margin-bottom: var(--sp-6) !important; }
 .u-mb-l { margin-bottom: var(--sp-8) !important; }
 
-/* スマホでだけ効かせる改行。長い一文が中途半端な位置で折り返すのを防ぐ */
-.u-br-sp { display: none; }
+/* 幅を限って効かせる改行。
+   本文には使わない（上の折り返しの項を参照）。
+   短い表示コピーで、狙った位置で切りたいときだけ使う。 */
+.u-br-sp { display: none; }          /* スマホでだけ改行する */
 @media (max-width: 767px) {
   .u-br-sp { display: inline; }
+}
+
+.u-br-pc { display: none; }          /* パソコンでだけ改行する */
+@media (min-width: 768px) {
+  .u-br-pc { display: inline; }
+}
+
+/* この中では折り返さない。
+   「｜」区切りの肩書きや「Level Ⅰ・Ⅱ・Ⅲ」のような、
+   途中で切れると読みが崩れる短い語のかたまりにだけ使う。
+   長い文に付けると画面からはみ出すので、必ず画面幅より短いものに限る。
+
+   360px 未満では解除する。iPhone SE 第1世代のような幅では、
+   折り返し禁止のままだと横スクロールが出るため。
+   語が割れることより、画面からはみ出すことの方が悪い */
+@media (min-width: 360px) {
+  .u-nw { white-space: nowrap; }
 }
 
 .visually-hidden {
