@@ -155,13 +155,18 @@
   --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
 
   /* --- スクロール演出 -----------------------------------------------------
-     --ease-reveal は最初に速く動いて静かに止まる曲線。
-     「ふわっ」ではなく「パッ」と出したいのでこれを使う。
-     長さを伸ばすほど、動きが演出として目に付いて安っぽくなる。 */
-  --ease-reveal:      cubic-bezier(0.16, 1, 0.3, 1);
-  --dur-reveal:       0.55s;   /* 文字・囲み */
-  --dur-reveal-photo: 0.85s;   /* 写真（めくる動きなので少し長い） */
-  --reveal-rise:      18px;    /* 下から上がってくる距離 */
+     --ease-reveal は始めも終わりも角が立たない曲線。
+     出足を速くすると「パッ」と弾かれたように見えるので、ここでは使わない。
+
+     濃さ（--dur-reveal-fade）を位置（--dur-reveal）より先に終わらせているのは、
+     読める状態を先に作って、そのあと静かに位置が収まるようにするため。
+     この差が「ふわっ」の正体で、同じ長さにすると、ただ遅いだけの動きになる。 */
+  --ease-reveal:      cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --dur-reveal:       0.95s;   /* 位置が収まるまで */
+  --dur-reveal-fade:  0.7s;    /* 濃さとにじみが取れるまで */
+  --dur-reveal-photo: 1.1s;    /* 写真（めくる動き） */
+  --reveal-rise:      16px;    /* 下から上がってくる距離 */
+  --reveal-blur:      4px;     /* 出はじめのにじみ。上げすぎると文字が読めない */
   /* 写真をめくる「覆い」の色。地の色と同じにする。
      面の色が変わる章では、その面の色に上書きすること（下の .section--plane など） */
   --curtain:          var(--paper);
@@ -1188,7 +1193,7 @@ strong, b { font-weight: 700; }
    JSが動かない環境では最初から表示されたままになる（内容は必ず読める）。
 
    動きは3種類だけ。
-     文字・囲み … 下から少し上がりながら現れる
+     文字・囲み … にじみが取れながら、下から少し上がってくる
      写真       … 下から紙をめくるように現れ、中の画像はわずかに縮む
      罫         … 左から引かれる
    拡大・回転・視差（パララックス）は使わない。
@@ -1197,13 +1202,16 @@ strong, b { font-weight: 700; }
 .reveal-ready {
   opacity: 0;
   transform: translateY(var(--reveal-rise));
+  filter: blur(var(--reveal-blur));
   transition:
-    opacity   var(--dur-reveal) var(--ease-reveal) var(--reveal-delay, 0ms),
-    transform var(--dur-reveal) var(--ease-reveal) var(--reveal-delay, 0ms);
+    opacity   var(--dur-reveal-fade) var(--ease-reveal) var(--reveal-delay, 0ms),
+    filter    var(--dur-reveal-fade) var(--ease-reveal) var(--reveal-delay, 0ms),
+    transform var(--dur-reveal)      var(--ease-reveal) var(--reveal-delay, 0ms);
 }
 .reveal-ready.is-visible {
   opacity: 1;
   transform: none;
+  filter: none;
 }
 
 /* 写真。地と同じ色の「覆い」を1枚かぶせておき、それを上へ引き上げて出す。
@@ -1218,6 +1226,7 @@ strong, b { font-weight: 700; }
 .reveal-ready.ph {
   opacity: 1;
   transform: none;
+  filter: none;
 }
 .reveal-ready.ph::after,
 .reveal-ready .ph::after {
@@ -1257,6 +1266,7 @@ strong, b { font-weight: 700; }
 /* 罫は左から引く */
 .reveal-ready.rule {
   opacity: 1;
+  filter: none;
   transform: scaleX(0);
   transform-origin: left center;
   transition: transform var(--dur-reveal) var(--ease-reveal) var(--reveal-delay, 0ms);
@@ -1343,6 +1353,7 @@ strong, b { font-weight: 700; }
   .reveal-ready .ph .ph__label {
     opacity: 1;
     transform: none;
+    filter: none;
   }
   .reveal-ready.ph::after,
   .reveal-ready .ph::after { display: none; }
@@ -1358,6 +1369,7 @@ strong, b { font-weight: 700; }
   .reveal-ready .ph .ph__label {
     opacity: 1 !important;
     transform: none !important;
+    filter: none !important;
   }
   .reveal-ready.ph::after,
   .reveal-ready .ph::after { display: none !important; }

@@ -83,7 +83,7 @@
 
   // 中身を1段だけ開いて数える箱。並んでいるものが順に出た方が気持ちがよい
   var REVEAL_FLATTEN = '.steps, .list-dot, .ph-grid, .faq';
-  var STAGGER_MS = 70;   // 同時に入ったとき、1つあたりの遅れ
+  var STAGGER_MS = 90;   // 同時に入ったとき、1つあたりの遅れ
   var STAGGER_MAX = 4;   // 遅らせる段数の上限。これ以上は待たされて見える
 
   function revealItems(block) {
