@@ -399,6 +399,16 @@ strong, b { font-weight: 700; }
 }
 .list-dot__item--emph::before { top: 0.8em; }
 
+/* 資格名に、学校名や認定団体などの長い補足が付くとき。
+   括弧で1行に押し込まず、下に小さく二段目として置く */
+.list-dot__note {
+  display: block;
+  font-size: var(--fs-s);
+  line-height: var(--lh-tight);
+  color: var(--ink-sub);
+  margin-top: var(--sp-1);
+}
+
 .list-plain > li { margin-bottom: var(--sp-3); line-height: var(--lh-list); }
 .list-plain > li:last-child { margin-bottom: 0; }
 
