@@ -84,6 +84,8 @@ for (const width of WIDTHS) {
     await page.evaluate(() => document.fonts.ready);
     await page.waitForTimeout(200);
     await page.evaluate(() => document.querySelectorAll('details').forEach((d) => { d.open = true; }));
+    // スクロール演出で隠れている要素も、出た状態にしてから測る
+    await page.evaluate(() => document.querySelectorAll('.reveal-ready').forEach((e) => e.classList.add('is-visible')));
 
     const overflow = await page.evaluate(() => {
       const d = document.documentElement;

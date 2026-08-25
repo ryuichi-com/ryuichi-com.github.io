@@ -63,7 +63,7 @@
    FAQ        : .faq .faq__item(details) .faq__q(summary) .faq__a
    CTA        : .cta-block .btn-line .btn-line--block .fixed-cta .link-more
    共通パーツ : .site-header .gnav .nav-toggle / .site-footer
-   演出       : .reveal（JSがフェードイン対象として拾う）
+   演出       : .reveal（この中身をJSが1つずつ拾って、画面に入った順に出す）
 ============================================================================ */
 
 /* ---------------------------------------------------------------------------
@@ -153,6 +153,18 @@
   --radius-btn: 4px;        /* 角丸はボタンだけ。面は紙なので角を丸めない */
 
   --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+
+  /* --- スクロール演出 -----------------------------------------------------
+     --ease-reveal は最初に速く動いて静かに止まる曲線。
+     「ふわっ」ではなく「パッ」と出したいのでこれを使う。
+     長さを伸ばすほど、動きが演出として目に付いて安っぽくなる。 */
+  --ease-reveal:      cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-reveal:       0.55s;   /* 文字・囲み */
+  --dur-reveal-photo: 0.85s;   /* 写真（めくる動きなので少し長い） */
+  --reveal-rise:      18px;    /* 下から上がってくる距離 */
+  /* 写真をめくる「覆い」の色。地の色と同じにする。
+     面の色が変わる章では、その面の色に上書きすること（下の .section--plane など） */
+  --curtain:          var(--paper);
 }
 
 /* ---------------------------------------------------------------------------
@@ -277,11 +289,12 @@ strong, b { font-weight: 700; }
 .section--minor { padding-block: var(--sp-8); }
 
 /* 意味のある面。多用しない（信頼を担保する章・実務情報など） */
-.section--plane { background: var(--paper-deep); }
+.section--plane { background: var(--paper-deep); --curtain: var(--paper-deep); }
 
 /* 濃色面。1ページに1回まで（最終CTA） */
 .section--ink {
   background: var(--ink);
+  --curtain: var(--ink);
   color: var(--on-ink);
   padding-block: var(--sp-10);
 }
@@ -1165,16 +1178,90 @@ strong, b { font-weight: 700; }
 }
 
 /* ---------------------------------------------------------------------------
-   15. フェードイン
-   全要素に一律でかけない。控えめに、短く。
+   15. スクロールに合わせて現れる演出
+   ---------------------------------------------------------------------------
+   .reveal を付けた範囲の「中身ひとつずつ」が対象。
+   範囲ごとにまとめて出すのではなく、画面に入った要素から順に出す。
+   スクロールの速さがそのまま出方になるので、演出が押し付けがましくならない。
+
+   .reveal-ready と .is-visible を付けるのはJS。
+   JSが動かない環境では最初から表示されたままになる（内容は必ず読める）。
+
+   動きは3種類だけ。
+     文字・囲み … 下から少し上がりながら現れる
+     写真       … 下から紙をめくるように現れ、中の画像はわずかに縮む
+     罫         … 左から引かれる
+   拡大・回転・視差（パララックス）は使わない。
+   落ち着いた信頼を売る事業なので、動きが目に付いた瞬間に安く見える。
 --------------------------------------------------------------------------- */
 .reveal-ready {
   opacity: 0;
-  transform: translateY(8px);
-  transition: opacity 0.5s var(--ease), transform 0.5s var(--ease);
+  transform: translateY(var(--reveal-rise));
+  transition:
+    opacity   var(--dur-reveal) var(--ease-reveal) var(--reveal-delay, 0ms),
+    transform var(--dur-reveal) var(--ease-reveal) var(--reveal-delay, 0ms);
 }
 .reveal-ready.is-visible {
   opacity: 1;
+  transform: none;
+}
+
+/* 写真。地と同じ色の「覆い」を1枚かぶせておき、それを上へ引き上げて出す。
+   下から順に画が現れる。
+
+   clip-path で隠す方が短く書けるが、それだと写真そのものが
+   「画面に入っていない」と判定されて、いつまでも出てこない。
+   だから覆いをかぶせる方式にしている。
+
+   .ph は overflow: hidden なので、中身を少し大きく置いてから等倍に戻すと、
+   めくりに合わせて画が落ち着いていく */
+.reveal-ready.ph {
+  opacity: 1;
+  transform: none;
+}
+.reveal-ready.ph::after,
+.reveal-ready .ph::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--curtain);
+  transition: transform var(--dur-reveal-photo) var(--ease-reveal) var(--reveal-delay, 0ms);
+}
+.reveal-ready.ph.is-visible::after,
+.reveal-ready.is-visible .ph::after {
+  transform: translateY(-100%);
+}
+
+.reveal-ready.ph .ph__img,
+.reveal-ready.ph .ph__label,
+.reveal-ready .ph .ph__img,
+.reveal-ready .ph .ph__label {
+  transform: scale(1.05);
+  transition: transform calc(var(--dur-reveal-photo) + 0.25s) var(--ease-reveal) var(--reveal-delay, 0ms);
+}
+.reveal-ready.ph.is-visible .ph__img,
+.reveal-ready.ph.is-visible .ph__label,
+.reveal-ready.is-visible .ph .ph__img,
+.reveal-ready.is-visible .ph .ph__label {
+  transform: none;
+}
+
+/* セッションの流れのように、文字の箱の中に写真が入っている場合は、
+   文字が収まってから写真をめくる。同時だと動きが重なって騒がしい */
+.reveal-ready:not(.ph) .ph::after,
+.reveal-ready:not(.ph) .ph .ph__img,
+.reveal-ready:not(.ph) .ph .ph__label {
+  transition-delay: calc(var(--reveal-delay, 0ms) + 140ms);
+}
+
+/* 罫は左から引く */
+.reveal-ready.rule {
+  opacity: 1;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform var(--dur-reveal) var(--ease-reveal) var(--reveal-delay, 0ms);
+}
+.reveal-ready.rule.is-visible {
   transform: none;
 }
 
@@ -1249,11 +1336,31 @@ strong, b { font-weight: 700; }
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
   }
-  .reveal-ready { opacity: 1; transform: none; }
+  .reveal-ready,
+  .reveal-ready .ph__img,
+  .reveal-ready .ph__label,
+  .reveal-ready .ph .ph__img,
+  .reveal-ready .ph .ph__label {
+    opacity: 1;
+    transform: none;
+  }
+  .reveal-ready.ph::after,
+  .reveal-ready .ph::after { display: none; }
 }
 
 @media print {
   .site-header, .fixed-cta { display: none !important; }
+  /* スクロールしていない状態で印刷しても、内容が欠けないようにする */
+  .reveal-ready,
+  .reveal-ready .ph__img,
+  .reveal-ready .ph__label,
+  .reveal-ready .ph .ph__img,
+  .reveal-ready .ph .ph__label {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .reveal-ready.ph::after,
+  .reveal-ready .ph::after { display: none !important; }
   body { padding-bottom: 0; background: #FFFFFF; }
   .section, .section--plane, .section--ink {
     padding-block: var(--sp-5);

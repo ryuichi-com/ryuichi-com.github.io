@@ -4,7 +4,7 @@
    ビルド不要のバニラJS。読み込みは </body> 直前で <script src="js/site.js" defer>。
    やっていることは3つだけ:
      1) グローバルナビの開閉（スマホ）
-     2) 軽いフェードイン（IntersectionObserver / .reveal に付ける）
+     2) スクロールに合わせて現れる演出（IntersectionObserver / .reveal に付ける）
      3) スマホ下部の固定CTAの表示制御（ページ内CTAが見えている間は引っ込める）
    FAQ は <details>/<summary> のネイティブ動作なので JS は使わない。
    JSが動かなくても、内容はすべて読める状態を保つこと。
@@ -68,33 +68,82 @@
   }
 
   /* ---------------------------------------------------------------------
-     2. フェードイン
-        .reveal を付けた要素だけが対象。JS が .reveal-ready を足してから
-        観測するので、JS が動かない環境では最初から表示されたままになる。
-  --------------------------------------------------------------------- */
-  function initReveal() {
-    var targets = Array.prototype.slice.call(document.querySelectorAll('.reveal'));
-    if (!targets.length) return;
+     2. スクロールに合わせて現れる演出
+        .reveal を付けた範囲の「中身ひとつずつ」を出す。
+        範囲ごとにまとめて出すと、長いセクションでは画面外の要素まで
+        一度に動いてしまい、スクロールと動きがつながらない。
 
+        JS が .reveal-ready を足してから観測するので、
+        JS が動かない環境では最初から表示されたままになる。
+
+        同じタイミングで画面に入ったものだけ、順に少しずつ遅らせる。
+        別々にスクロールインしたものには遅れを付けない
+        （待たされているように見えるため）。
+  --------------------------------------------------------------------- */
+
+  // 中身を1段だけ開いて数える箱。並んでいるものが順に出た方が気持ちがよい
+  var REVEAL_FLATTEN = '.steps, .list-dot, .ph-grid, .faq';
+  var STAGGER_MS = 70;   // 同時に入ったとき、1つあたりの遅れ
+  var STAGGER_MAX = 4;   // 遅らせる段数の上限。これ以上は待たされて見える
+
+  function revealItems(block) {
+    var items = [];
+    Array.prototype.forEach.call(block.children, function (child) {
+      if (child.matches && child.matches(REVEAL_FLATTEN) && child.children.length) {
+        Array.prototype.push.apply(items, Array.prototype.slice.call(child.children));
+      } else {
+        items.push(child);
+      }
+    });
+    return items;
+  }
+
+  function initReveal() {
+    var blocks = Array.prototype.slice.call(document.querySelectorAll('.reveal'));
+    if (!blocks.length) return;
     if (reduceMotion || !('IntersectionObserver' in window)) return;
 
-    targets.forEach(function (el) { el.classList.add('reveal-ready'); });
+    var targets = [];
+    blocks.forEach(function (block) {
+      revealItems(block).forEach(function (el) {
+        el.classList.add('reveal-ready');
+        targets.push(el);
+      });
+    });
+    if (!targets.length) return;
+
+    function show(el, step) {
+      if (step) el.style.setProperty('--reveal-delay', (step * STAGGER_MS) + 'ms');
+      el.classList.add('is-visible');
+    }
 
     var io = new IntersectionObserver(function (entries) {
+      var step = 0;
       entries.forEach(function (entry) {
         if (!entry.isIntersecting) return;
-        entry.target.classList.add('is-visible');
+        show(entry.target, Math.min(step, STAGGER_MAX));
+        step++;
         io.unobserve(entry.target);
       });
-    }, { rootMargin: '0px 0px -8% 0px', threshold: 0.08 });
+    }, {
+      // 画面の下から1割ほど入ったところで出す。
+      // threshold は 0 にしておく。罫のように面積が 0 の要素は
+      // 割合で判定すると、いつまでも条件を満たさないため
+      rootMargin: '0px 0px -10% 0px',
+      threshold: 0
+    });
 
     targets.forEach(function (el) { io.observe(el); });
 
-    // 初期表示で画面内にある要素は即座に出す（観測の取りこぼし防止）
+    // 初期表示で画面内にあるものは、観測を待たずに出す（取りこぼし防止）
     window.setTimeout(function () {
+      var step = 0;
       targets.forEach(function (el) {
-        var rect = el.getBoundingClientRect();
-        if (rect.top < window.innerHeight * 0.95) el.classList.add('is-visible');
+        if (el.classList.contains('is-visible')) return;
+        if (el.getBoundingClientRect().top < window.innerHeight * 0.95) {
+          show(el, Math.min(step, STAGGER_MAX));
+          step++;
+        }
       });
     }, 60);
   }
