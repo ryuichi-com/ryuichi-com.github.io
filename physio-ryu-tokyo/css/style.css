@@ -317,6 +317,20 @@ strong, b { font-weight: 700; }
   margin: 0 0 var(--sp-7);
 }
 
+/* 最重要の一文を黒い面に載せる。紙 → 黒 → 紙で切り替わり、その一文だけが浮く。
+   黒い面は1ページに2回まで（もう1枚は最終CTAの .section--ink）。
+   免責・FAQ・建物の説明のような長文には使わない。
+   短く大きい文字のときだけ成立する装置で、増やすほど効果が落ちる。 */
+.quote-plane {
+  background: var(--ink);
+  padding-block: var(--sp-10);
+  margin-block: var(--sp-10);
+}
+.quote-plane .pull-quote {
+  color: var(--on-ink);
+  margin-block: 0;
+}
+
 /* 一文だけを独立させて見せる（最重要の一文） */
 .pull-quote {
   font-family: var(--font-mincho);
@@ -1120,6 +1134,12 @@ strong, b { font-weight: 700; }
 .u-mb-s { margin-bottom: var(--sp-4) !important; }
 .u-mb-m { margin-bottom: var(--sp-6) !important; }
 .u-mb-l { margin-bottom: var(--sp-8) !important; }
+
+/* スマホでだけ効かせる改行。長い一文が中途半端な位置で折り返すのを防ぐ */
+.u-br-sp { display: none; }
+@media (max-width: 767px) {
+  .u-br-sp { display: inline; }
+}
 
 .visually-hidden {
   position: absolute !important;
