@@ -83,7 +83,7 @@
 
   // 中身を1段だけ開いて数える箱。並んでいるものが順に出た方が気持ちがよい
   var REVEAL_FLATTEN = '.steps, .list-dot, .ph-grid, .faq';
-  var STAGGER_MS = 90;   // 同時に入ったとき、1つあたりの遅れ
+  var STAGGER_MS = 110;  // 同時に入ったとき、1つあたりの遅れ
   var STAGGER_MAX = 4;   // 遅らせる段数の上限。これ以上は待たされて見える
 
   function revealItems(block) {
@@ -126,10 +126,12 @@
         io.unobserve(entry.target);
       });
     }, {
-      // 画面の下から1割ほど入ったところで出す。
+      // 画面の下から少し入ったところで出しはじめる。
+      // ゆっくり出す設定なので、深く入ってから始めると
+      // 読む位置に来るまでに収まりきらない。
       // threshold は 0 にしておく。罫のように面積が 0 の要素は
       // 割合で判定すると、いつまでも条件を満たさないため
-      rootMargin: '0px 0px -10% 0px',
+      rootMargin: '0px 0px -5% 0px',
       threshold: 0
     });
 
