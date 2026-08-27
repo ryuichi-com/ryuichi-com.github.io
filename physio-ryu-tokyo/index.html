@@ -76,7 +76,7 @@
       何度も会ってきました。
     </h1>
 
-    <p class="lead">だから、まだ動ける今のうちにできることをお伝えしています。</p>
+    <p class="lead">だから、まだ動ける今のうちに、何をして、何をしなくていいかをお伝えしています。</p>
 
     <!-- Signature Element：進め方の4工程。
          「メニューを決めてから見る」のではないことを、読ませずに伝えるための図。
@@ -105,15 +105,26 @@
     <hr class="rule">
 
     <p class="note-small">
-      港区白金台／完全予約制・マンツーマン<br>
+      港区白金台／<strong>木曜日のみ</strong>・完全予約制・マンツーマン<br>
       <!-- 「｜」の直後でしか折り返さないようにする。「現在も／病院に勤務」のように
            語の途中で切れるのと、行頭が「｜」で始まるのを両方防ぐ -->
       <span class="u-nw">理学療法士｜</span><span class="u-nw">理学療法学修士｜</span><span class="u-nw">臨床経験豊富｜</span><span class="u-nw">現在も病院に勤務</span>
     </p>
 
+    <!-- 価格をここに置くのは、合わない方に11画面スクロールさせないため。
+         枠が週1日しかない事業なので、来訪者数より適合率を優先する。
+         「60分」ではなく「ご予約枠60分」と書くこと。
+         料金セクション本文で「短時間で終えた方がよい場合もある」と言っており、
+         60分行うことは約束していない -->
+    <p class="hero__price">
+      <span class="hero__price-name">パーソナル身体管理セッション</span>
+      <span class="hero__price-amt">1回 16,500<span class="hero__price-unit">円（税込）</span></span>
+      <span class="hero__price-slot">ご予約枠60分／都度払い・回数券なし</span>
+    </p>
+
     <div class="cta-block cta-block--left">
-      <a class="btn-line" href="https://lin.ee/6pUFgzJ" target="_blank" rel="noopener">LINEで予約する</a>
-      <p class="cta-block__note">ご予約の前に、安全にご利用いただけるかを確認します。</p>
+      <a class="btn-line" href="https://lin.ee/6pUFgzJ" target="_blank" rel="noopener">LINEで相談・予約する</a>
+      <p class="cta-block__note">ご利用が可能か確認したうえで、候補日時をご案内します。</p>
     </div>
 
     <!-- 写真差し替え: 下の <span class="ph__label">…</span> ごと
@@ -135,11 +146,10 @@
     </div>
   </div>
 </section>
-
 <!-- ==========================================================================
      ② 悩みへの共感
 ========================================================================== -->
-<section class="section">
+<section class="section" data-cta-hide>
   <div class="wrap reveal">
     <h2 class="section-title">こんなふうに感じていませんか</h2>
 
@@ -153,13 +163,12 @@
     </ul>
   </div>
 </section>
-
 <!-- ==========================================================================
      ③ なぜ、戻るのか
      ※ 指示書原文にあった1語が12章の禁止表現に当たるため、
        趣旨（一時的に楽になるだけ）を保ったまま「その部分に手を当てれば」に置き換えている
 ========================================================================== -->
-<section class="section section--major">
+<section class="section section--major" data-cta-hide>
   <div class="wrap reveal">
     <h2 class="section-title">「その日だけ楽になる」を、繰り返していませんか</h2>
 
@@ -188,11 +197,10 @@
 
   </div>
 </section>
-
 <!-- ==========================================================================
      ④ 誰が見るのか（プロフィール）
 ========================================================================== -->
-<section class="section section--major">
+<section class="section section--major" data-cta-hide>
   <div class="wrap reveal">
     <h2 class="section-title">見立てをする人間について</h2>
 
@@ -241,13 +249,177 @@
     <p class="u-mb-0"><a class="link-more" href="about/index.html">詳しいプロフィールはこちら</a></p>
 
     <div class="cta-block" data-cta-hide>
-      <a class="btn-line" href="https://lin.ee/6pUFgzJ" target="_blank" rel="noopener">LINEで予約する</a>
+      <a class="btn-line" href="https://lin.ee/6pUFgzJ" target="_blank" rel="noopener">LINEで相談・予約する</a>
     </div>
   </div>
 </section>
-
 <!-- ==========================================================================
-     ⑤ 疾患後の身体管理
+     ⑤ セッションで整理してお伝えすること
+     ---------------------------------------------------------------------------
+     16,500円の対価を、成果物として書く章。プロフィール（根拠）と料金（価格）の
+     あいだに置くことに意味がある。順序を変えないこと。
+
+     効果を断定しない。ここに書いてよいのは「こちらが行うこと」だけで、
+     「こうなります」は書けない。文末はすべて「お伝えします／整理します」で止める。
+========================================================================== -->
+<section class="section section--plane">
+  <div class="wrap reveal">
+    <h2 class="section-title">セッションで整理してお伝えすること</h2>
+
+    <p>
+      セッションを受けて終わりではなく、現在の身体について分かったことと、これから取り組む内容を整理して共有します。
+    </p>
+
+    <ul class="list-dot">
+      <li>
+        現在の姿勢や動きから分かったこと
+        <span class="list-dot__note">専門用語で煙に巻かず、ご自身の言葉で説明できる状態を目指します</span>
+      </li>
+      <li>
+        その日に行ったケアと運動の目的
+        <span class="list-dot__note">なぜそれを行い、なぜ別のことを行わなかったのかをお伝えします</span>
+      </li>
+      <li>
+        セッション前後で確認できた変化
+        <span class="list-dot__note">最初に見たところをもう一度見て、変わったこと・変わらなかったことを一緒に確かめます</span>
+      </li>
+      <li>
+        日常で意識することと、ご自身に合うセルフケア
+        <span class="list-dot__note">一般的な体操ではなく、その日に見た身体に合わせてお渡しします</span>
+      </li>
+    </ul>
+
+    <p class="u-mb-0">
+      ここで行うのは治療ではありません。医療機関の受診や治療に代わるものではありません。
+    </p>
+  </div>
+</section>
+<!-- ==========================================================================
+     ⑥ 料金と時間 ─ 価格を主表示、時間は補足情報
+========================================================================== -->
+<section class="section">
+  <div class="wrap reveal">
+    <h2 class="section-title">料金</h2>
+
+    <div class="price">
+      <p class="price__name">パーソナル身体管理セッション</p>
+      <p class="price__amount">
+        <span class="price__times">1回</span>16,500<span class="price__unit">円（税込）</span>
+      </p>
+      <p class="price__slot">ご予約枠：60分</p>
+    </div>
+
+    <p>
+      実際の所要時間は、その日の状態に応じて決めます。体力や状態によっては、短時間で終えた方がよい場合もあります。長く行うことが良い結果につながるとは限らないためです。
+    </p>
+
+    <ul class="list-dot">
+      <li>初回・2回目以降とも同額です</li>
+      <li>都度払い（回数券・月額契約はありません）</li>
+      <li>追加料金はありません</li>
+      <li>お支払いはクレジットカードまたはPayPayでの事前決済</li>
+    </ul>
+
+    <p>
+      メニューは一つだけです。手によるケアと運動、どちらを選ぶかをお客様が考える必要はありません。その日の状態を見て、必要なものを組み立てます。
+    </p>
+
+    <!-- 「何回必要か」への答え。競合はここで回数や期間を約束するが、
+         このサイトの答えは「通わせない」。約束できる事業にしか書けない一文なので、
+         下層ページに置かずトップの料金に出す -->
+    <p class="u-mb-0">
+      通い続けることを前提にしていません。ご自身で身体を保てる状態が目標です。そのために必要な頻度は、その日の状態を見てから正直にお伝えします。
+    </p>
+
+    <div class="cta-block" data-cta-hide>
+      <a class="btn-line" href="https://lin.ee/6pUFgzJ" target="_blank" rel="noopener">LINEで相談・予約する</a>
+    </div>
+  </div>
+</section>
+<!-- ==========================================================================
+     ⑦ セッションの流れ
+     写真は「聞く」と「伝える」の2枚だけにしてある。
+     6工程すべてに写真を入れると、この章だけでスマホ3画面を超える。
+     ここは読ませる章なので、写真を増やすと前後の余白の落差が消える。
+========================================================================== -->
+<section class="section">
+  <div class="wrap reveal">
+    <h2 class="section-title">当日、どんなことをするのか</h2>
+
+    <ol class="steps">
+      <li class="step">
+        <span class="step__num" aria-hidden="true">1</span>
+        <h3 class="step__title">聞く</h3>
+        <div class="step__body">
+          <p>
+            今つらいこと、生活の中で困っていること、これからどうなりたいかを伺います。ここに時間をかけます。
+          </p>
+        </div>
+        <!-- 写真差し替え: <span class="ph__label">…</span> を <img class="ph__img" src="images/step-01.jpg" alt=""> に -->
+        <figure class="ph ph--wide step__figure"><span class="ph__label">
+        <span class="ph__name">聞いている場面（横長・16:9）</span>
+        <span class="ph__brief">向かい合って座り、相手の話を聞いている場面。顔がはっきり写らなくてよい。メモを取る手元と、相手側の姿勢が入る引きの構図。「ここに時間をかける」ことが伝わるよう、急いでいない空気で。</span>
+      </span></figure>
+      </li>
+
+      <li class="step">
+        <span class="step__num" aria-hidden="true">2</span>
+        <h3 class="step__title">見る</h3>
+        <div class="step__body">
+          <p>
+            姿勢、関節の動き、筋肉の状態、身体の使い方を確認します。手で触れて確かめながら、どこに負担が集まっているかを探します。
+          </p>
+        </div>
+      </li>
+
+      <li class="step">
+        <span class="step__num" aria-hidden="true">3</span>
+        <h3 class="step__title">伝える</h3>
+        <div class="step__body">
+          <p>
+            分かったことを、その場でお伝えします。何が起きているのか、何が必要で、何は必要ないのか。ご自身の身体の状態を、ご自身の言葉で説明できる状態を目指します。
+          </p>
+        </div>
+        <figure class="ph ph--wide step__figure"><span class="ph__label">
+        <span class="ph__name">説明している場面（横長・16:9）</span>
+        <span class="ph__brief">骨模型や紙に描いた図を示しながら話している手元。相手が同じものを見ている構図だと、一方的な説明でないことが伝わる。</span>
+      </span></figure>
+      </li>
+
+      <li class="step">
+        <span class="step__num" aria-hidden="true">4</span>
+        <h3 class="step__title">整えて、動かす</h3>
+        <div class="step__body">
+          <p>
+            動きにくくなっているところを手で整えてから、ピラティスの考え方を用いた運動を行います。整えてから動かす順序が、動きの身につきやすさを変えます。
+          </p>
+        </div>
+      </li>
+
+      <li class="step">
+        <span class="step__num" aria-hidden="true">5</span>
+        <h3 class="step__title">確かめる</h3>
+        <div class="step__body">
+          <p>
+            最初に見たところをもう一度確認します。変化があったか、なかったかを一緒に確かめます。
+          </p>
+        </div>
+      </li>
+
+      <li class="step">
+        <span class="step__num" aria-hidden="true">6</span>
+        <h3 class="step__title">持ち帰る</h3>
+        <div class="step__body">
+          <p>
+            ご自宅で続けられるセルフケアを、その日の状態に合わせてお渡しします。通い続けなくても身体を保てる状態が、目標です。
+          </p>
+        </div>
+      </li>
+    </ol>
+  </div>
+</section>
+<!-- ==========================================================================
+     ⑧ 疾患後の身体管理
 ========================================================================== -->
 <section class="section section--plane">
   <div class="wrap reveal">
@@ -283,168 +455,16 @@
     <p class="u-mb-0"><a class="link-more" href="after-treatment/index.html">詳しくはこちら</a></p>
   </div>
 </section>
-
 <!-- ==========================================================================
-     ⑥ セッションの流れ
-     各ステップの写真プレースホルダは後日差し込み（任意）。
-     不要な場合は <figure class="ph …"> ごと削除してよい
-========================================================================== -->
-<section class="section">
-  <div class="wrap reveal">
-    <h2 class="section-title">当日、どんなことをするのか</h2>
-
-    <ol class="steps">
-      <li class="step">
-        <span class="step__num" aria-hidden="true">1</span>
-        <h3 class="step__title">聞く</h3>
-        <div class="step__body">
-          <p>
-            今つらいこと、生活の中で困っていること、これからどうなりたいかを伺います。ここに時間をかけます。
-          </p>
-        </div>
-        <!-- 写真差し替え: <span class="ph__label">…</span> を <img class="ph__img" src="images/step-01.jpg" alt=""> に -->
-        <figure class="ph ph--wide step__figure"><span class="ph__label">
-        <span class="ph__name">聞いている場面（横長・16:9）</span>
-        <span class="ph__brief">向かい合って座り、相手の話を聞いている場面。顔がはっきり写らなくてよい。メモを取る手元と、相手側の姿勢が入る引きの構図。「ここに時間をかける」ことが伝わるよう、急いでいない空気で。</span>
-      </span></figure>
-      </li>
-
-      <li class="step">
-        <span class="step__num" aria-hidden="true">2</span>
-        <h3 class="step__title">見る</h3>
-        <div class="step__body">
-          <p>
-            姿勢、関節の動き、筋肉の状態、身体の使い方を確認します。手で触れて確かめながら、どこに負担が集まっているかを探します。
-          </p>
-        </div>
-        <figure class="ph ph--wide step__figure"><span class="ph__label">
-        <span class="ph__name">姿勢と動きを見ている場面（横長・16:9）</span>
-        <span class="ph__brief">立っている相手を少し離れた位置から見ている構図、または背中や肩に手を当てて確かめている手元。器具は使わず、見ていること・触れて確かめていることが分かる画。</span>
-      </span></figure>
-      </li>
-
-      <li class="step">
-        <span class="step__num" aria-hidden="true">3</span>
-        <h3 class="step__title">伝える</h3>
-        <div class="step__body">
-          <p>
-            分かったことを、その場でお伝えします。何が起きているのか、何が必要で、何は必要ないのか。ご自身の身体の状態を、ご自身の言葉で説明できる状態を目指します。
-          </p>
-        </div>
-        <figure class="ph ph--wide step__figure"><span class="ph__label">
-        <span class="ph__name">説明している場面（横長・16:9）</span>
-        <span class="ph__brief">骨模型や紙に描いた図を示しながら話している手元。相手が同じものを見ている構図だと、一方的な説明でないことが伝わる。</span>
-      </span></figure>
-      </li>
-
-      <li class="step">
-        <span class="step__num" aria-hidden="true">4</span>
-        <h3 class="step__title">整えて、動かす</h3>
-        <div class="step__body">
-          <p>
-            手で関節や筋肉の状態を確かめ、動きにくくなっているところを整えたうえで、ピラティスの考え方を用いた運動を行います。順序が大切で、整えてから動かすことで、動きが身につきやすくなります。
-          </p>
-        </div>
-        <figure class="ph ph--wide step__figure"><span class="ph__label">
-        <span class="ph__name">運動している場面（横長・16:9）</span>
-        <span class="ph__brief">PHI Pilates Barrel またはマットの上での運動。補助している手が画面に入っていること。きつそうな表情や負荷の高い動作ではなく、静かな動きを選ぶ。</span>
-      </span></figure>
-      </li>
-
-      <li class="step">
-        <span class="step__num" aria-hidden="true">5</span>
-        <h3 class="step__title">確かめる</h3>
-        <div class="step__body">
-          <p>
-            最初に見たところをもう一度確認します。変化があったか、なかったかを一緒に確かめます。
-          </p>
-        </div>
-        <figure class="ph ph--wide step__figure"><span class="ph__label">
-        <span class="ph__name">もう一度確認している場面（横長・16:9）</span>
-        <span class="ph__brief">最初に見たところを再び確認している場面。「評価場面の写真」と同じ角度・同じ距離で撮ると、見比べたことが伝わる（ビフォーアフターの演出はしない）。</span>
-      </span></figure>
-      </li>
-
-      <li class="step">
-        <span class="step__num" aria-hidden="true">6</span>
-        <h3 class="step__title">持ち帰る</h3>
-        <div class="step__body">
-          <p>
-            ご自宅で続けられるセルフケアを、その日の状態に合わせてお渡しします。通い続けなくても身体を保てる状態が、目標です。
-          </p>
-        </div>
-        <figure class="ph ph--wide step__figure"><span class="ph__label">
-        <span class="ph__name">持ち帰るセルフケア（横長・16:9）</span>
-        <span class="ph__brief">自宅で続ける動きを実演している場面、またはお渡しする紙の手元。特別な器具を使わず、家でできることが分かる画にする。</span>
-      </span></figure>
-      </li>
-    </ol>
-  </div>
-</section>
-
-<!-- ==========================================================================
-     ⑦ 料金と時間 ─ 価格を主表示、時間は補足情報
-========================================================================== -->
-<section class="section">
-  <div class="wrap reveal">
-    <h2 class="section-title">料金</h2>
-
-    <div class="price">
-      <p class="price__name">パーソナル身体管理セッション</p>
-      <p class="price__amount">
-        <span class="price__times">1回</span>16,500<span class="price__unit">円（税込）</span>
-      </p>
-      <p class="price__slot">ご予約枠：60分</p>
-    </div>
-
-    <p>
-      実際の所要時間は、その日の状態に応じて決めます。体力や状態によっては、短時間で終えた方がよい場合もあります。長く行うことが良い結果につながるとは限らないためです。
-    </p>
-
-    <ul class="list-dot">
-      <li>初回・2回目以降とも同額です</li>
-      <li>都度払い（回数券・月額契約はありません）</li>
-      <li>追加料金はありません</li>
-      <li>お支払いはクレジットカードまたはPayPayでの事前決済</li>
-    </ul>
-
-    <p class="u-mb-0">
-      メニューは一つだけです。手によるケアと運動、どちらを選ぶかをお客様が考える必要はありません。その日の状態を見て、必要なものを組み立てます。
-    </p>
-
-    <div class="cta-block" data-cta-hide>
-      <a class="btn-line" href="https://lin.ee/6pUFgzJ" target="_blank" rel="noopener">LINEで予約する</a>
-    </div>
-  </div>
-</section>
-
-<!-- ==========================================================================
-     ⑧ 場所・営業
+     ⑨ 場所・営業
+     ---------------------------------------------------------------------------
+     ここはアクセスページの要約に留める。写真と当日の流れはアクセスページにあり、
+     トップで繰り返すと同じ内容で1.9画面を使うことになる。
+     残すのは「行けるかどうか」を判断するための情報だけ。
 ========================================================================== -->
 <section class="section">
   <div class="wrap reveal">
     <h2 class="section-title">場所とご利用について</h2>
-
-    <!-- 写真差し替え: 各 <span class="ph__label">…</span> を
-         <img class="ph__img" src="images/exterior.jpg" alt="…"> などに置き換える -->
-    <div class="ph-grid ph-grid--2">
-      <figure class="ph ph--photo43"><span class="ph__label">
-        <span class="ph__name">建物の外観（4:3）</span>
-        <span class="ph__brief">道路側から建物全体。初めての人が目印にできる要素（門・植栽・隣の建物など）を画面に入れる。日中に撮影する。番地が写る場合は、公開前に読めないか確認すること。</span>
-      </span></figure>
-      <figure class="ph ph--photo43"><span class="ph__label">
-        <span class="ph__name">入口（4:3）</span>
-        <span class="ph__brief">インターホンと扉が分かる構図。「どのボタンを押すか」ではなく「ここで合っている」と確認できることが目的。少し引いて、扉までの導線が見えるように。</span>
-      </span></figure>
-      <figure class="ph ph--photo43"><span class="ph__label">
-        <span class="ph__name">施術スペース（4:3）</span>
-        <span class="ph__brief">ベッド・Barrel・マットが入る引きの構図。木材と自然光の質感が分かるように日中に撮影する。マンツーマンで使う部屋であることが伝わる広さで。</span>
-      </span></figure>
-      <figure class="ph ph--photo43"><span class="ph__label">
-        <span class="ph__name">地下へ下りる階段（4:3）</span>
-        <span class="ph__brief">手すりが写る位置から。段数と傾斜が分かる引きの構図。実際の明るさのまま撮る（明るく補正しない）。ご利用の条件を正しく判断していただくための写真なので、見栄えより実物どおりであることを優先する。</span>
-      </span></figure>
-    </div>
 
     <p>
       東京都港区白金台<br>
@@ -458,21 +478,12 @@
       完全予約制・日時はLINEで調整します
     </p>
 
-    <h3 class="subhead">ご来店について</h3>
-
-    <p>
-      ご予約時刻の5分前を目安にお越しください。待合スペースがないため、それより早く到着された場合は、インターホンを押さずにLINEでご連絡ください。
-    </p>
-
-    <p>初回は場所が分かりにくいため、到着されましたらLINEでお知らせください。</p>
-
-    <p class="standout">外までお迎えに参ります。</p>
-
     <div class="notice">
       <p class="notice__title">ご利用前に必ずご確認ください</p>
       <ul class="list-dot">
         <li>一戸建ての地下1階にあります。階段のみでエレベーターはありません</li>
         <li>そのため、車椅子でのご来店には対応できません</li>
+        <li>待合スペースはありません</li>
         <li>ご家族や介助の方の同伴・同室が可能です</li>
       </ul>
     </div>
@@ -484,9 +495,8 @@
     <p class="u-mt-m u-mb-0"><a class="link-more" href="access/index.html">アクセス・ご予約について詳しくはこちら</a></p>
   </div>
 </section>
-
 <!-- ==========================================================================
-     ⑨ よくある質問（details / summary のアコーディオン）
+     ⑩ よくある質問（details / summary のアコーディオン）
 ========================================================================== -->
 <section class="section section--minor">
   <div class="wrap reveal">
@@ -590,9 +600,8 @@
     <p class="u-mt-l u-mb-0"><a class="link-more" href="first-visit/index.html">はじめての方へ（ご利用の流れ・条件）</a></p>
   </div>
 </section>
-
 <!-- ==========================================================================
-     ⑩ 最終CTA ─ 背景色を変えて他セクションと差をつける
+     ⑪ 最終CTA ─ 背景色を変えて他セクションと差をつける
 ========================================================================== -->
 <section class="section section--ink">
   <div class="wrap reveal">
@@ -608,9 +617,9 @@
     </p>
 
     <div class="cta-block" data-cta-hide>
-      <a class="btn-line" href="https://lin.ee/6pUFgzJ" target="_blank" rel="noopener">LINEで予約する</a>
+      <a class="btn-line" href="https://lin.ee/6pUFgzJ" target="_blank" rel="noopener">LINEで相談・予約する</a>
       <p class="cta-block__note">
-        ※ご予約の前に、お身体の状況を伺い、ご利用いただけるかをお伝えします。通常48時間以内にご返信します。
+        ※お身体の状況を伺い、ご利用が可能か確認したうえで、候補日時をご案内します。通常48時間以内にご返信します。
       </p>
     </div>
   </div>
@@ -660,7 +669,7 @@
 
 <!-- スマホ画面下部の固定CTA（全ページ共通） -->
 <div class="fixed-cta">
-  <a class="btn-line btn-line--block" href="https://lin.ee/6pUFgzJ" target="_blank" rel="noopener">LINEで予約する</a>
+  <a class="btn-line btn-line--block" href="https://lin.ee/6pUFgzJ" target="_blank" rel="noopener">LINEで相談・予約する</a>
 </div>
 
 <script src="js/site.js" defer></script>

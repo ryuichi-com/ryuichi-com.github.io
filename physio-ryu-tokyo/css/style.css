@@ -868,6 +868,39 @@ strong, b { font-weight: 700; }
 }
 .price__amount .price__unit  { margin-left: 0.4em; }
 .price__amount .price__times { margin-right: 0.5em; }
+/* ヒーローに置く価格。料金セクション（.price）より一段小さく組む。
+   ここは「合うかどうかを早く判断してもらう」ための表示で、価格の主表示ではない。
+   時間は「ご予約枠」と書く。60分やることを約束していないため
+   （料金セクションの本文と揃える） */
+.hero__price {
+  margin: 0 0 var(--sp-6);
+  line-height: var(--lh-tight);
+}
+.hero__price-name {
+  display: block;
+  font-family: var(--font-mincho);
+  font-size: var(--fs-ms);
+  font-weight: 700;
+  letter-spacing: var(--ls-head);
+  color: var(--ink);
+}
+.hero__price-amt {
+  display: inline-block;
+  margin-top: var(--sp-2);
+  font-family: var(--font-mincho);
+  font-size: var(--fs-2xl);
+  letter-spacing: 0.01em;
+  color: var(--ink);
+}
+.hero__price-unit { font-size: var(--fs-ms); letter-spacing: 0.05em; }
+.hero__price-slot {
+  display: block;
+  margin-top: var(--sp-2);
+  font-size: var(--fs-s);
+  letter-spacing: 0.06em;
+  color: var(--ink-sub);
+}
+
 .price__slot {
   font-size: var(--fs-s);
   color: var(--ink-sub);
@@ -984,7 +1017,9 @@ strong, b { font-weight: 700; }
   right: 0;
   bottom: 0;
   z-index: 60;
-  padding: var(--sp-3) var(--sp-4) calc(var(--sp-3) + env(safe-area-inset-bottom, 0px));
+  /* 高さは 4 + ボタン56 + 4 = 64px。塗りは減らさず面積だけを詰める。
+     輪郭ボタンにすると背景とのコントラストが落ち、押せることが伝わりにくい */
+  padding: var(--sp-1) var(--sp-4) calc(var(--sp-1) + env(safe-area-inset-bottom, 0px));
   background: rgba(250, 249, 247, 0.96);
   border-top: 1px solid var(--rule);
   transition: transform 0.28s var(--ease), opacity 0.28s var(--ease);
@@ -999,7 +1034,7 @@ strong, b { font-weight: 700; }
   .fixed-cta { display: none; }
 }
 @media (max-width: 899px) {
-  body { padding-bottom: 84px; }
+  body { padding-bottom: 68px; }  /* 固定CTA 64px + 余白 */
 }
 
 /* ---------------------------------------------------------------------------
