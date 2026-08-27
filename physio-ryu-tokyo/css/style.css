@@ -79,7 +79,10 @@
 
   --ink:         #23211E;  /* 墨。見出し・濃色面の地 */
   --ink-body:    #35322D;  /* 本文 */
-  --ink-sub:     #6F6961;  /* 副次テキスト（紙の上で 5.6:1） */
+  /* 副次テキスト。紙の質感を掛けると地がわずかに沈むので、
+     いちばん沈んだ濃い紙の上（#DBD7D1 相当）でも 4.5:1 を保てる濃さにしてある。
+     これより薄くすると、濃い紙の面でその基準を割る */
+  --ink-sub:     #635D54;
   --ink-faint:   #A79F94;  /* 写真プレースホルダの枠内文字 */
 
   --rule:        #DCD5CA;  /* 罫 */
@@ -152,6 +155,19 @@
 
   --radius-btn: 4px;        /* 角丸はボタンだけ。面は紙なので角を丸めない */
 
+  /* --- 紙の質感 ----------------------------------------------------------
+     和紙の繊維と漉きムラを写した 256px のタイル（images/washi.png）。
+     グレースケールの画像を background-blend-mode: multiply で地色に掛ける。
+     地色を変えても質感がそのまま乗るので、--paper でも --paper-deep でも使える。
+
+     SVGフィルタ（feTurbulence）でも同じことはできるが、
+     描画されない環境があり見た目を確認できないため、画像にしてある。
+
+     濃さを変えたいときは画像を差し替える。CSS側の数値ではない。
+     墨の面（.section--ink）には掛けない。暗い地の上ではノイズか汚れに見える。 */
+  --washi: url(../images/washi.png);
+  --washi-size: 256px 256px;
+
   --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
 
   /* --- スクロール演出 -----------------------------------------------------
@@ -190,7 +206,11 @@ html {
 
 body {
   margin: 0;
-  background: var(--paper);
+  background-color: var(--paper);
+  background-image: var(--washi);
+  background-repeat: repeat;
+  background-size: var(--washi-size);
+  background-blend-mode: multiply;
   color: var(--ink-body);
   font-family: var(--font-gothic);
   font-weight: 400;
@@ -300,7 +320,14 @@ strong, b { font-weight: 700; }
 .section--minor { padding-block: var(--sp-8); }
 
 /* 意味のある面。多用しない（信頼を担保する章・実務情報など） */
-.section--plane { background: var(--paper-deep); --curtain: var(--paper-deep); }
+.section--plane {
+  background-color: var(--paper-deep);
+  --curtain: var(--paper-deep);
+  background-image: var(--washi);
+  background-repeat: repeat;
+  background-size: var(--washi-size);
+  background-blend-mode: multiply;
+}
 
 /* 濃色面。1ページに1回まで（最終CTA） */
 .section--ink {
@@ -558,7 +585,17 @@ strong, b { font-weight: 700; }
   font-size: var(--fs-ms);
   line-height: var(--lh-tight);
 }
-.section--plane .notice { background: var(--paper); }
+.section--plane .notice { background-color: var(--paper); }
+/* 紙を塗り直している小さな面にも、同じ質感を乗せる */
+.notice,
+.tbd,
+.section--plane .notice,
+.section--plane .tbd {
+  background-image: var(--washi);
+  background-repeat: repeat;
+  background-size: var(--washi-size);
+  background-blend-mode: multiply;
+}
 .section--ink .notice { background: rgba(245, 242, 236, 0.07); }
 .notice__title {
   font-family: var(--font-mincho);
@@ -1402,6 +1439,8 @@ strong, b { font-weight: 700; }
 
 @media print {
   .site-header, .fixed-cta { display: none !important; }
+  /* 紙に印刷するので、紙の質感は要らない */
+  body, .section--plane, .notice, .tbd { background-image: none !important; }
   /* スクロールしていない状態で印刷しても、内容が欠けないようにする */
   .reveal-ready,
   .reveal-ready .ph__img,
