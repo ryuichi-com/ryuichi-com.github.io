@@ -39,7 +39,11 @@
       （ヒーローの主コピー、.pull-quote、住所・営業時間などの箇条）。
       それ以外で行を切りたいときは .u-br-pc / .u-br-sp / .u-nw を使う。
 
-   【禁止】金色・グラデーション・筆記体・装飾アイコン・絵文字。
+   【禁止】金色・彩度のあるグラデーション・筆記体・装飾アイコン・絵文字。
+           ※ヒーローの地には明暗だけのグラデーションを敷いている（.hero を参照）。
+             紙と墨の中で奥行きを作るのは可。色を足すのが禁止。
+             緑の地を試したが、LINEの緑と同系色になり、
+             「色が付いている＝そこを押す」という規律が壊れた。
            アニメーションは控えめなフェードインのみ（prefers-reduced-motion 対応）。
 
    【命名規則】
@@ -413,6 +417,25 @@ strong, b { font-weight: 700; }
 .note-small p { margin-bottom: var(--sp-3); }
 
 /* ファーストビューの主コピー（写真は使わない。文字と余白だけで組む） */
+/* ファーストビューの地。和紙の上に、斜めから光が差しているような明暗をつける。
+   彩度は足していない。紙と墨の中だけで奥行きを作る。
+
+   最後の色を var(--paper) ぴったりで終わらせているのが要点。
+   ここが紙の色と1段でもずれると、ヒーローの下端に横線が出る。
+   （最初 #F2EFE8 で終わらせたら、次のセクションとの境目がはっきり見えた）
+
+   ここだけに掛ける。全ページに敷くと、明暗が常にあるぶん
+   読ませる章の落ち着きが削がれる。 */
+.hero {
+  background-image:
+    var(--washi),
+    radial-gradient(150% 60% at 10% 74%, #E2DCD0 0%, rgba(226, 220, 208, 0) 64%),
+    linear-gradient(180deg, #FDFDFB 0%, #F8F6F2 44%, var(--paper) 100%);
+  background-repeat: repeat, no-repeat, no-repeat;
+  background-size: var(--washi-size), cover, cover;
+  background-blend-mode: multiply, normal, normal;
+}
+
 .hero__copy {
   font-family: var(--font-mincho);
   font-size: var(--fs-hero);
@@ -1440,7 +1463,7 @@ strong, b { font-weight: 700; }
 @media print {
   .site-header, .fixed-cta { display: none !important; }
   /* 紙に印刷するので、紙の質感は要らない */
-  body, .section--plane, .notice, .tbd { background-image: none !important; }
+  body, .hero, .section--plane, .notice, .tbd { background-image: none !important; }
   /* スクロールしていない状態で印刷しても、内容が欠けないようにする */
   .reveal-ready,
   .reveal-ready .ph__img,
