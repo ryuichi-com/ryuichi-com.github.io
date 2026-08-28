@@ -63,21 +63,21 @@
   <div class="wrap">
     <h1 class="page-title">アクセス・ご予約</h1>
 
-    <!-- 写真差し替え: 各 <span class="ph__label">…</span> を
-         <img class="ph__img" src="../images/exterior.jpg" alt="…"> などに置き換えるだけ -->
+    <!-- 仮画像3枚（tmp-sketch-*.jpg）は写真ではなく、撮影の構図を描いた下絵。
+         実物を撮ったら、そのまま <img> の src を差し替えるだけでよい。
+         下絵に入りきらない指示は、各 figure の前にコメントで残してある -->
     <div class="ph-grid ph-grid--2">
-      <figure class="ph ph--photo43"><span class="ph__label">
-        <span class="ph__name">建物の外観（4:3）</span>
-        <span class="ph__brief">道路側から建物全体。初めての人が目印にできる要素（門・植栽・隣の建物など）を画面に入れる。日中に撮影する。番地が写る場合は、公開前に読めないか確認すること。</span>
-      </span></figure>
-      <figure class="ph ph--photo43"><span class="ph__label">
-        <span class="ph__name">入口（4:3）</span>
-        <span class="ph__brief">インターホンと扉が分かる構図。「どのボタンを押すか」ではなく「ここで合っている」と確認できることが目的。少し引いて、扉までの導線が見えるように。</span>
-      </span></figure>
-      <figure class="ph ph--photo43"><span class="ph__label">
-        <span class="ph__name">地下へ下りる階段（4:3）</span>
-        <span class="ph__brief">手すりが写る位置から。段数と傾斜が分かる引きの構図。実際の明るさのまま撮る（明るく補正しない）。ご利用の条件を正しく判断していただくための写真なので、見栄えより実物どおりであることを優先する。</span>
-      </span></figure>
+      <!-- 建物の外観（4:3）: 道路側から建物全体。初めての人が目印にできる要素
+           （門・植栽・隣の建物など）を画面に入れる。日中に撮影する。
+           番地が写る場合は、公開前に読めないか必ず確認すること -->
+      <figure class="ph ph--photo43"><img class="ph__img" src="../images/tmp-sketch-exterior.jpg" alt="建物の外観の撮影構図を示した下絵"></figure>
+      <!-- 入口（4:3）: インターホンと扉が分かる構図。「どのボタンを押すか」ではなく
+           「ここで合っている」と確認できることが目的。少し引いて、扉までの導線が見えるように -->
+      <figure class="ph ph--photo43"><img class="ph__img" src="../images/tmp-sketch-entrance.jpg" alt="入口の撮影構図を示した下絵"></figure>
+      <!-- 地下へ下りる階段（4:3）: 手すりが写る位置から。段数と傾斜が分かる引きの構図。
+           実際の明るさのまま撮る（明るく補正しない）。ご利用の条件を正しく判断して
+           いただくための写真なので、見栄えより実物どおりであることを優先する -->
+      <figure class="ph ph--photo43"><img class="ph__img" src="../images/tmp-sketch-stairs.jpg" alt="地下へ下りる階段の撮影構図を示した下絵"></figure>
       <figure class="ph ph--photo43"><img class="ph__img" src="../images/tmp-ai-room.jpg" alt="施術スペース"></figure>
     </div>
 
