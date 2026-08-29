@@ -416,6 +416,67 @@ strong, b { font-weight: 700; }
 }
 .note-small p { margin-bottom: var(--sp-3); }
 
+/* ファーストビューの写真帯。
+   開いた瞬間に「場所の空気」を伝えるために、先頭に写真を置く。
+   ただし全面写真にはしない。390pxで実測すると、全面にした場合
+   価格と「木曜日のみ・高輪台駅」に届くまでが 1.33画面 → 2.25画面 に伸びる。
+   帯にとどめれば 1.64画面で済み、開いた瞬間の見え方はほとんど変わらない
+   （全面案・帯案・写真なし案を実際に作って比べた結果）。
+   全面案は主コピーも短いスローガンに置き換わるため、
+   「悔やむ方に何度も会ってきました」という、この人にしか書けない一文を失う。
+
+   高さは svh。iOSでアドレスバーが伸縮するたびに帯の高さが動くのを避ける。
+   svh が効かない環境のために vh も先に書き、min/max で挟んでいる。 */
+.hero-band {
+  position: relative;
+  height: 38vh;
+  height: 38svh;
+  min-height: 200px;
+  max-height: 340px;
+  overflow: hidden;
+  background: var(--ink);      /* 画像が届くまでの地。白い箱が一瞬出るのを防ぐ */
+}
+
+.hero-band__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 覆い。上端はヘッダーとの境を締め、下端は英字を読ませるために落とす。
+   左下だけ余分に濃くしてあるのは、白い壁や窓が入った写真でも
+   英字のコントラストが 4.5:1 を下回らないようにするため。
+   実際に測って決めた値なので、写真を差し替えたら測り直すこと
+   （地の明るさが上がると、ここが最初に破綻する）。 */
+.hero-band__scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(122% 96% at 0% 100%, rgba(20, 18, 16, 0.72) 0%, rgba(20, 18, 16, 0) 64%),
+    linear-gradient(180deg, rgba(20, 18, 16, 0.30) 0%, rgba(20, 18, 16, 0.06) 52%, rgba(20, 18, 16, 0.30) 100%);
+}
+
+.hero-band__tag {
+  position: absolute;
+  left: var(--sp-4);
+  bottom: var(--sp-4);
+  margin: 0;
+  color: var(--on-ink);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  line-height: var(--lh-label);
+}
+
+/* 帯のすぐ下に主コピーが来るので、ヒーローの上余白だけ詰める */
+.hero--under { padding-top: var(--sp-6); }
+
+@media (min-width: 900px) {
+  .hero-band { height: 42vh; height: 42svh; max-height: 420px; }
+  .hero-band__tag { left: var(--sp-8); bottom: var(--sp-6); font-size: 12px; }
+}
+
 /* ファーストビューの主コピー（写真は使わない。文字と余白だけで組む） */
 /* ファーストビューの地。和紙の上に、斜めから光が差しているような明暗をつける。
    彩度は足していない。紙と墨の中だけで奥行きを作る。

@@ -62,10 +62,23 @@
 
 <!-- ==========================================================================
      ① ファーストビュー
-     主コピー → 進め方の4工程（Signature Element）→ 意味を言う一文 → CTA → 空間写真。
+     写真の帯 → 主コピー → 進め方の4工程（Signature Element）→ 意味を言う一文
+     → 条件 → 価格 → CTA。
      「メニューを決めてから見るのではない」ことを、読ませずに図で伝えるのが狙い。
+
+     先頭の帯は「場所の空気」だけを担当させ、文章は載せない。
+     全面写真にすると価格と条件が1画面ぶん遠くなり、
+     主コピーも短いスローガンに置き換わってしまうため、帯にとどめている。
 ========================================================================== -->
-<section class="section section--major hero" data-cta-hide>
+<!-- 【仮の画像】AI生成の仮置きです。撮影後に必ず差し替えてください。
+     差し替えたら、英字のコントラストを測り直すこと（覆いの濃さは実測で決めている） -->
+<section class="hero-band" data-cta-hide>
+  <img class="hero-band__img" src="images/tmp-ai-studio.jpg" alt="白金台のスタジオ">
+  <div class="hero-band__scrim"></div>
+  <p class="hero-band__tag">MOVEMENT &amp; BODY CARE</p>
+</section>
+
+<section class="section section--major hero hero--under" data-cta-hide>
   <!-- ヒーローだけは本文の可読幅(700px)から外し、主コピーが指定どおり3行で組める幅にする -->
   <div class="wrap wrap--hero">
     <h1 class="hero__copy">
@@ -130,16 +143,6 @@
       <p class="cta-block__note">ご利用が可能か確認したうえで、候補日時をご案内します。通常48時間以内にご返信します。</p>
     </div>
 
-    <!-- 写真差し替え: 下の <span class="ph__label">…</span> ごと
-         <img class="ph__img" src="images/studio.jpg" alt="白金台のスタジオ"> に置き換える -->
-    <!-- ここだけ .reveal で囲むのは、主コピーとCTAは開いた瞬間に読める状態のまま、
-         写真だけをスクロールに合わせて出すため -->
-    <div class="reveal">
-    <!-- 【仮の画像】AI生成の仮置きです。撮影後に必ず差し替え、images/tmp-ai-*.jpg を削除してください -->
-    <figure class="ph ph--wide u-mt-l">
-      <img class="ph__img" src="images/tmp-ai-studio.jpg" alt="スタジオの空間">
-    </figure>
-    </div>
   </div>
 </section>
 <!-- ==========================================================================
