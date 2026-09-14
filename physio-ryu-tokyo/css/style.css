@@ -646,6 +646,10 @@ strong, b { font-weight: 700; }
 .step__body p:last-child { margin-bottom: 0; }
 .step__figure { margin-top: var(--sp-5); }
 
+/* 道順の写真。縦位置なので、幅を抑えないと1枚でスマホ1画面を超える。
+   4枚続けて出すため、1枚あたりが大きいと道順として追えなくなる */
+.step__figure--route { max-width: 300px; }
+
 @media (min-width: 768px) {
   .step {
     display: grid;
@@ -654,6 +658,7 @@ strong, b { font-weight: 700; }
   }
   .step__num { grid-column: 1; margin-bottom: 0; padding-top: 0.35em; }
   .step__title, .step__body, .step__figure { grid-column: 2; }
+  .step__figure--route { max-width: 340px; }
 }
 
 /* ---------------------------------------------------------------------------
