@@ -454,8 +454,8 @@ strong, b { font-weight: 700; }
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(122% 96% at 0% 100%, rgba(20, 18, 16, 0.72) 0%, rgba(20, 18, 16, 0) 64%),
-    linear-gradient(180deg, rgba(20, 18, 16, 0.30) 0%, rgba(20, 18, 16, 0.06) 52%, rgba(20, 18, 16, 0.30) 100%);
+    radial-gradient(130% 104% at 0% 100%, rgba(20, 18, 16, 0.86) 0%, rgba(20, 18, 16, 0) 72%),
+    linear-gradient(180deg, rgba(20, 18, 16, 0.30) 0%, rgba(20, 18, 16, 0.06) 50%, rgba(20, 18, 16, 0.38) 100%);
 }
 
 .hero-band__tag {
