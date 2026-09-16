@@ -429,10 +429,10 @@ strong, b { font-weight: 700; }
    svh が効かない環境のために vh も先に書き、min/max で挟んでいる。 */
 .hero-band {
   position: relative;
-  height: 38vh;
-  height: 38svh;
-  min-height: 200px;
-  max-height: 340px;
+  height: 46vh;
+  height: 46svh;
+  min-height: 230px;
+  max-height: 400px;
   overflow: hidden;
   background: var(--ink);      /* 画像が届くまでの地。白い箱が一瞬出るのを防ぐ */
 }
@@ -473,7 +473,7 @@ strong, b { font-weight: 700; }
 .hero--under { padding-top: var(--sp-6); }
 
 @media (min-width: 900px) {
-  .hero-band { height: 42vh; height: 42svh; max-height: 420px; }
+  .hero-band { height: 50vh; height: 50svh; max-height: 480px; }
   .hero-band__tag { left: var(--sp-8); bottom: var(--sp-6); font-size: 12px; }
 }
 
