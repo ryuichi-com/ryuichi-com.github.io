@@ -1199,11 +1199,18 @@ strong, b { font-weight: 700; }
   color: var(--ink);
   line-height: var(--lh-label);
 }
+/* 英字のロゴタイプなので、本文の明朝ではなく太字のゴシック・大文字・広いトラッキングにして、
+   屋号として一目でそれとわかる強さを持たせている（装飾は加えず、字体だけで作る）。
+   1.2rem/0.08em は、このサイトの最小対応幅（320px）でも折り返さない上限値 */
 .brand__name {
-  font-family: var(--font-mincho);
-  font-size: var(--fs-l);
-  font-weight: 400;
-  letter-spacing: 0.1em;
+  font-family: var(--font-gothic);
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+@media (min-width: 768px) {
+  .brand__name { font-size: 1.4rem; letter-spacing: 0.12em; }
 }
 .brand__sub {
   font-size: var(--fs-xs);
@@ -1306,10 +1313,11 @@ strong, b { font-weight: 700; }
   .site-footer__inner { padding-inline: var(--sp-6); }
 }
 .site-footer__brand {
-  font-family: var(--font-mincho);
-  font-size: var(--fs-l);
-  font-weight: 400;
+  font-family: var(--font-gothic);
+  font-size: 1.2rem;
+  font-weight: 700;
   letter-spacing: 0.1em;
+  text-transform: uppercase;
   color: var(--ink);
   margin-bottom: var(--sp-2);
 }
