@@ -102,6 +102,7 @@
   /* --- 書体 -------------------------------------------------------------
      2書体だけ。英数字専用の3書体目は置かない（用途が機械的になるため）。 */
   --font-mincho: "Zen Old Mincho", "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", serif;
+  --font-latin:  "Jost", "Zen Kaku Gothic New", sans-serif;  /* 社名の文字ロゴ専用 */
   --font-gothic: "Zen Kaku Gothic New", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif;
 
   /* --- 文字サイズ（1.25倍の9段階。この外の値を書かない） ----------------- */
@@ -1132,10 +1133,19 @@ strong, b { font-weight: 700; }
   line-height: var(--lh-label);
 }
 .brand__name {
-  font-family: var(--font-mincho);
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.55em;
+  font-family: var(--font-latin);
   font-size: var(--fs-l);
-  font-weight: 400;
-  letter-spacing: 0.1em;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+}
+/* 文字ロゴの「TOKYO」。サイト内では墨1色版を使う（彩度のある色はLINEボタンだけ、の規律を守るため） */
+.brand__city {
+  font-size: 0.39em;
+  letter-spacing: 0.32em;
 }
 .brand__sub {
   font-size: var(--fs-xs);
@@ -1238,10 +1248,14 @@ strong, b { font-weight: 700; }
   .site-footer__inner { padding-inline: var(--sp-6); }
 }
 .site-footer__brand {
-  font-family: var(--font-mincho);
+  display: flex;
+  align-items: baseline;
+  gap: 0.55em;
+  font-family: var(--font-latin);
   font-size: var(--fs-l);
-  font-weight: 400;
-  letter-spacing: 0.1em;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
   color: var(--ink);
   margin-bottom: var(--sp-2);
 }
