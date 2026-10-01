@@ -1,0 +1,1488 @@
+@charset "UTF-8";
+/* ============================================================================
+   Physio Ryu Tokyo — 共通スタイルシート（全ページ共通で読み込む）
+   ---------------------------------------------------------------------------
+   【デザインの考え方】
+
+   1. 紙と墨。彩度を持つのは「押すべきボタン」だけ。
+      地は生成りの紙（--paper）、文字は暖かい墨（--ink）。
+      サイト全体で彩度のある色は LINEグリーン ただ一つ。
+      「色が付いている＝そこを押す」という規律を全ページで守ること。
+      装飾のために色を足さない。差し色を増やした瞬間にこの設計は壊れる。
+
+   2. セクションを区切るのは、余白の落差と見出しの級数だけ。
+      交互に背景色を変える処理は使わない。
+      章番号や章題のラベルも置かない（見出しと重複して、
+      小さな見出しが二重に並ぶだけになるため）。
+
+   3. セクションには軽重がある。
+      .section--major … 章の山場（見出しを大きく、余白を広く）
+      .section        … 標準
+      .section--minor … 補足的な章（見出しを小さく、余白を詰める）
+      全部を同じ大きさで並べると、どこが山場か読者に伝わらない。
+
+   4. 寸法は必ずスケールから取る。
+      文字は --fs-*（1.25倍の9段階）、余白は --sp-*（4px基準の10段階）。
+      その場かぎりの px や rem を直接書かない。clamp() もスケールの定義側だけで使う。
+
+   5. 行間は一律にしない。
+      読ませる本文は広く（--lh-read 1.9）、実務情報は詰める（--lh-tight 1.65）。
+      全部が同じ広さだと緩急が消えて締まりのない紙面になる。
+
+   6. 本文に <br> を入れない。折り返しはブラウザにそろえさせる。
+      日本語は語の途中でも折り返すため、放っておくと「リハビリテーシ／ョン」と割れる。
+      かといって <br> で行を固定すると、その行が画面幅より長いときに端数が出て、
+      今度は「す。」「を、」だけの行が生まれる（スマホでは必ずそうなる）。
+      折り返しは word-break: auto-phrase / text-wrap: pretty・balance に任せる。
+      詳しくは「2. リセット / 基本」の折り返しの項。
+      <br> を使ってよいのは、どの画面幅でも折り返さない短い行だけ
+      （ヒーローの主コピー、.pull-quote、住所・営業時間などの箇条）。
+      それ以外で行を切りたいときは .u-br-pc / .u-br-sp / .u-nw を使う。
+
+   【禁止】金色・彩度のあるグラデーション・筆記体・装飾アイコン・絵文字。
+           ※ヒーローの地には明暗だけのグラデーションを敷いている（.hero を参照）。
+             紙と墨の中で奥行きを作るのは可。色を足すのが禁止。
+             緑の地を試したが、LINEの緑と同系色になり、
+             「色が付いている＝そこを押す」という規律が壊れた。
+           アニメーションは控えめなフェードインのみ（prefers-reduced-motion 対応）。
+
+   【命名規則】
+   - ブロック名は小文字ハイフン区切り     : .section-title / .ph-grid
+   - 要素は二重アンダースコア             : .step__num / .site-header__inner
+   - 変化形（モディファイア）は二重ハイフン: .section--major / .ph--portrait
+   - 状態クラスは is- 接頭辞              : .is-open / .is-visible / .is-current
+   - 汎用ユーティリティは u- 接頭辞       : .u-mt-l / .u-mb-0 / .u-br-pc / .u-nw
+
+   【主要クラス早見】
+   レイアウト : .wrap .wrap--hero
+                .section .section--major .section--minor .section--plane .section--ink
+   見出し     : .page-title .section-title .subhead .rule
+   本文       : .prose（下層ページの記事本文）.lead .note-small .standout .pull-quote
+                ※ .ph--square / .ph__img は写真差し替え後に使うため未使用でも残す
+   リスト     : .list-dot .list-dot__item--emph / .list-plain / .steps .step
+   囲み       : .notice .notice__title / .card / .info-dl
+   表         : .table-wrap > .table
+   写真       : .ph .ph--portrait .ph--square .ph--wide .ph--photo43 / .ph-grid .ph-grid--2
+   料金       : .price .price__amount .price__slot
+   FAQ        : .faq .faq__item(details) .faq__q(summary) .faq__a
+   CTA        : .cta-block .btn-line .btn-line--block .fixed-cta .link-more
+   共通パーツ : .site-header .gnav .nav-toggle / .site-footer
+   演出       : .reveal（この中身をJSが1つずつ拾って、画面に入った順に出す）
+============================================================================ */
+
+/* ---------------------------------------------------------------------------
+   1. デザイントークン
+--------------------------------------------------------------------------- */
+:root {
+  /* --- 色 ---------------------------------------------------------------
+     無彩色はすべて墨（#23211E）から導いた暖色寄りのグレー。
+     寒色のグレー（例: #6B7280）を混ぜないこと。紙の温度と合わなくなる。   */
+  --paper:       #FAF9F7;  /* 生成りの紙。地 */
+  --paper-deep:  #ECE8E1;  /* 一段深い紙。意味のある面にだけ使う */
+  --paper-sink:  #E3DED5;  /* さらに深い面（写真プレースホルダ） */
+
+  --ink:         #23211E;  /* 墨。見出し・濃色面の地 */
+  --ink-body:    #35322D;  /* 本文 */
+  /* 副次テキスト。紙の質感を掛けると地がわずかに沈むので、
+     いちばん沈んだ濃い紙の上（#DBD7D1 相当）でも 4.5:1 を保てる濃さにしてある。
+     これより薄くすると、濃い紙の面でその基準を割る */
+  --ink-sub:     #635D54;
+  --ink-faint:   #A79F94;  /* 写真プレースホルダの枠内文字 */
+
+  --rule:        #DCD5CA;  /* 罫 */
+  --rule-strong: #C4BBAC;
+
+  --on-ink:      #F5F2EC;  /* 濃色面の上の文字 */
+  --on-ink-sub:  #B9B2A6;
+
+  /* サイト内で唯一、彩度を持つ色。CTA以外に絶対に使わない */
+  --line:        #06C755;
+  --line-deep:   #05A948;
+
+  /* --- 書体 -------------------------------------------------------------
+     2書体だけ。英数字専用の3書体目は置かない（用途が機械的になるため）。 */
+  --font-mincho: "Zen Old Mincho", "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", serif;
+  --font-gothic: "Zen Kaku Gothic New", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif;
+
+  /* --- 文字サイズ（1.25倍の9段階。この外の値を書かない） ----------------- */
+  --fs-xs:  0.75rem;                              /* 12px ラベル・補足の補足 */
+  --fs-s:   0.8125rem;                            /* 13px 補足 */
+  --fs-ms:  0.9375rem;                            /* 15px 小 */
+  --fs-m:   1rem;                                 /* 本文 */
+  --fs-l:   1.25rem;                              /* リード・小見出し */
+  --fs-xl:  clamp(1.25rem, 0.95rem + 1.3vw, 1.5625rem); /* 節見出し */
+  --fs-2xl: clamp(1.375rem, 0.95rem + 1.75vw, 1.953rem);/* セクション見出し */
+  --fs-3xl: clamp(1.5rem, 1rem + 2.2vw, 2.441rem);      /* 山場・ページ見出し */
+  /* 見出し3段の下限は、スマホでの折り返しから決めている。
+     たとえば「病院を出たあとの身体を、どう保っていくか」は、
+     390px幅で 27px を超えると2行に収まらず、
+     「病院を出たあとの／身体を、／どう保っていくか」と3行に割れる。
+     上限（1.5625 / 1.953 / 2.441rem）はスケールどおりで、パソコンでの見え方は変わらない。 */
+  --fs-4xl: clamp(2rem, 1.2rem + 3.6vw, 3.052rem);     /* 価格 */
+  /* ヒーロー専用。上限 2.3rem は、主コピー2行目（20字）が
+     ヒーロー幅860px の中で折り返さずに収まる最大値
+     （20字 × 36.8px × 1.06 = 780px < 796px）。
+     これ以上大きくすると指定どおりの3行構成が崩れる。
+     下限側を 0.9rem + 2.4vw にしてあるのは、768px幅でも
+     2行目が折り返さずに3行構成を保てる大きさに収めるため。
+     スマホでは3行に収まらないので4行になる。そのとき
+     かぎ括弧の中で切れないよう、HTML側で引用部分を .u-nw にしてある */
+  --fs-hero: clamp(1.375rem, 0.9rem + 2.4vw, 2.3rem);
+
+  /* --- 余白（4px基準の10段階。この外の値を書かない） --------------------- */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+  --sp-8: 64px;
+  --sp-9:  clamp(64px, 8vw, 96px);
+  --sp-10: clamp(88px, 11vw, 144px);
+
+  /* --- 行間（一律にしない。読ませる／詰めるを使い分ける） ----------------- */
+  --lh-read:  1.9;    /* 読ませる本文 */
+  --lh-list:  1.8;    /* リスト */
+  --lh-tight: 1.65;   /* 実務情報・表・注意書き */
+  --lh-head:  1.55;   /* 見出し */
+  --lh-label: 1.4;    /* ラベル */
+
+  --ls-body: 0.03em;
+  --ls-head: 0.05em;
+
+  /* --- 寸法 -------------------------------------------------------------- */
+  --measure:        700px;  /* 本文の可読幅 */
+  --measure-wide:   980px;
+  --measure-hero:   860px;  /* ヒーローは本文幅の制約から外す */
+  --pad-x:          24px;
+
+  --radius-btn: 4px;        /* 角丸はボタンだけ。面は紙なので角を丸めない */
+
+  /* --- 紙の質感 ----------------------------------------------------------
+     和紙の繊維と漉きムラを写した 256px のタイル（images/washi.png）。
+     グレースケールの画像を background-blend-mode: multiply で地色に掛ける。
+     地色を変えても質感がそのまま乗るので、--paper でも --paper-deep でも使える。
+
+     SVGフィルタ（feTurbulence）でも同じことはできるが、
+     描画されない環境があり見た目を確認できないため、画像にしてある。
+
+     濃さを変えたいときは画像を差し替える。CSS側の数値ではない。
+     墨の面（.section--ink）には掛けない。暗い地の上ではノイズか汚れに見える。 */
+  --washi: url(../images/washi.png);
+  --washi-size: 256px 256px;
+
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+
+  /* --- スクロール演出 -----------------------------------------------------
+     --ease-reveal は始めも終わりも角が立たない曲線。
+     出足を速くすると「パッ」と弾かれたように見えるので、ここでは使わない。
+
+     ゆっくり見せたいときは、長さを伸ばすだけでは足りない。
+     出足の速い曲線だと、1秒かけても最初の0.2秒で半分まで濃くなってしまい、
+     残りは見えないところで終わる。曲線の方を平らにして初めてゆっくりになる。
+     （0.4, 0, 0.2, 1）は0.3秒でようやく4割ほど。実測値は次のとおり。
+       0.1s 0.03 ／ 0.3s 0.37 ／ 0.5s 0.78 ／ 0.7s 0.94 ／ 1.0s 1.00
+
+     濃さ（--dur-reveal-fade）を位置（--dur-reveal）より先に終わらせているのは、
+     読める状態を先に作って、そのあと静かに位置が収まるようにするため。
+     この差が「ふわっ」の正体で、同じ長さにすると、ただ遅いだけの動きになる。 */
+  --ease-reveal:      cubic-bezier(0.4, 0, 0.2, 1);
+  --dur-reveal:       1.4s;    /* 位置が収まるまで */
+  --dur-reveal-fade:  1s;      /* 濃さとにじみが取れるまで */
+  --dur-reveal-photo: 1.5s;    /* 写真（めくる動き） */
+  --reveal-rise:      20px;    /* 下から上がってくる距離。ゆっくりなぶん少し長く取る */
+  --reveal-blur:      4px;     /* 出はじめのにじみ。上げすぎると文字が読めない */
+  /* 写真をめくる「覆い」の色。地の色と同じにする。
+     面の色が変わる章では、その面の色に上書きすること（下の .section--plane など） */
+  --curtain:          var(--paper);
+}
+
+/* ---------------------------------------------------------------------------
+   2. リセット / 基本
+--------------------------------------------------------------------------- */
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background-color: var(--paper);
+  background-image: var(--washi);
+  background-repeat: repeat;
+  background-size: var(--washi-size);
+  background-blend-mode: multiply;
+  color: var(--ink-body);
+  font-family: var(--font-gothic);
+  font-weight: 400;
+  font-size: var(--fs-m);
+  line-height: var(--lh-read);
+  letter-spacing: var(--ls-body);
+  font-feature-settings: "palt" 1;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-wrap: break-word;
+  line-break: strict;
+}
+
+/* 日本語の折り返しを、文字数まかせではなく文節の切れ目にそろえる。
+   全ページの <html> に lang="ja" が入っていることが前提。これが無いと効かない。
+
+   word-break: auto-phrase
+     「回復期リハビリテーシ／ョン」のような語の途中での分断と、
+     行末に1〜2文字だけ残る折り返しを避ける。Chrome / Edge で有効。
+   text-wrap: pretty
+     auto-phrase 非対応（Safari・Firefox）での保険。
+     最終行が極端に短くなるのを抑える。
+
+   どちらも非対応ブラウザでは無視され、従来どおり任意の位置で折り返すだけなので、
+   崩れることはない。
+
+   固い改行（<br>）は原則として本文に入れない。入れると、その行が
+   画面幅より長いときに必ず端数が出て、1〜2文字の行が生まれる。
+   <br> を使ってよいのは、どの幅でも折り返さない短い行だけ
+   （ヒーローの主コピー、引用、住所・営業時間などの箇条）。 */
+body {
+  word-break: auto-phrase;
+  text-wrap: pretty;
+}
+
+/* 見出し・設問・定義語は「短くて2〜3行になる」文字列なので、
+   pretty（最終行だけ守る）では行末に2〜3文字が残る。
+   balance は全行の長さをそろえるので、こちらを使う。
+   本文には使わない。長文に balance をかけると1行が短くなりすぎる */
+h1, h2, h3, h4, summary, dt, li, .lead, .flow-note, .pull-quote, .price__name {
+  text-wrap: balance;
+}
+
+/* ただし <br> で組み方を指定してある見出しは、balance に組み直させない。
+   作者が決めた位置で切れなくなるため */
+h1:has(br), h2:has(br), h3:has(br), h4:has(br), .pull-quote:has(br) {
+  text-wrap: pretty;
+}
+
+@media (min-width: 768px) {
+  :root { --fs-m: 1.0625rem; }  /* 17px */
+}
+
+img, svg, video { max-width: 100%; height: auto; display: block; }
+figure { margin: 0; }
+
+a {
+  color: var(--ink);
+  text-underline-offset: 0.26em;
+  text-decoration-thickness: 1px;
+  text-decoration-color: var(--rule-strong);
+}
+a:hover { text-decoration-color: var(--ink); }
+
+:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-mincho);
+  line-height: var(--lh-head);
+  letter-spacing: var(--ls-head);
+  color: var(--ink);
+  margin: 0;
+}
+
+p { margin: 0 0 1.5em; }
+p:last-child { margin-bottom: 0; }
+
+ul, ol { margin: 0; padding: 0; }
+li { list-style: none; }
+
+strong, b { font-weight: 700; }
+
+/* ---------------------------------------------------------------------------
+   3. レイアウト
+--------------------------------------------------------------------------- */
+.wrap {
+  width: 100%;
+  max-width: var(--measure);
+  margin-inline: auto;
+  padding-inline: var(--pad-x);
+}
+.wrap--hero   { max-width: var(--measure-hero); }
+
+@media (min-width: 768px) {
+  .wrap { padding-inline: var(--sp-6); }
+}
+
+/* セクション。区切るのは余白の落差と見出しの級数。背景の塗り分けは使わない */
+.section {
+  position: relative;
+  padding-block: var(--sp-9);
+}
+.section--major { padding-block: var(--sp-10); }
+.section--minor { padding-block: var(--sp-8); }
+
+/* 意味のある面。多用しない（信頼を担保する章・実務情報など） */
+.section--plane {
+  background-color: var(--paper-deep);
+  --curtain: var(--paper-deep);
+  background-image: var(--washi);
+  background-repeat: repeat;
+  background-size: var(--washi-size);
+  background-blend-mode: multiply;
+}
+
+/* 濃色面。1ページに1回まで（最終CTA） */
+.section--ink {
+  background: var(--ink);
+  --curtain: var(--ink);
+  color: var(--on-ink);
+  padding-block: var(--sp-10);
+}
+.section--ink h1, .section--ink h2, .section--ink h3 { color: var(--on-ink); }
+.section--ink .note-small,
+.section--ink .cta-block__note { color: var(--on-ink-sub); }
+.section--ink a { color: var(--on-ink); text-decoration-color: rgba(245, 242, 236, 0.5); }
+.section--ink .rule { border-top-color: rgba(245, 242, 236, 0.35); }
+
+/* ---------------------------------------------------------------------------
+   4. 見出し・テキスト部品
+   大きい明朝は細く（400）、小さい見出しは太く（700）。
+   同じウェイトで大小を作らないこと。落差が消える。
+--------------------------------------------------------------------------- */
+
+/* 下層ページの大見出し */
+.page-title {
+  font-size: var(--fs-3xl);
+  font-weight: 400;
+  margin-bottom: var(--sp-6);
+}
+
+/* セクション見出し（標準） */
+.section-title {
+  font-size: var(--fs-2xl);
+  font-weight: 400;
+  margin-bottom: var(--sp-6);
+}
+/* 山場のセクション見出し */
+.section--major > .wrap > .section-title,
+.section-title--lg {
+  font-size: var(--fs-3xl);
+  font-weight: 400;
+  margin-bottom: var(--sp-7);
+}
+/* 補足的なセクション見出し */
+.section--minor > .wrap > .section-title {
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  margin-bottom: var(--sp-5);
+}
+
+/* 小見出し */
+.subhead {
+  font-family: var(--font-mincho);
+  font-size: var(--fs-l);
+  font-weight: 700;
+  letter-spacing: var(--ls-head);
+  line-height: var(--lh-head);
+  margin: var(--sp-8) 0 var(--sp-4);
+}
+
+/* 「―――」の区切り */
+.rule {
+  width: var(--sp-8);
+  height: 0;
+  border: 0;
+  border-top: 1px solid var(--rule-strong);
+  margin: var(--sp-6) 0;
+}
+
+/* リード文 */
+.lead {
+  font-family: var(--font-mincho);
+  font-size: var(--fs-l);
+  font-weight: 400;
+  line-height: var(--lh-read);
+  letter-spacing: var(--ls-head);
+  margin-bottom: var(--sp-6);
+}
+
+/* 小さな補足 */
+.note-small {
+  font-size: var(--fs-s);
+  line-height: var(--lh-tight);
+  color: var(--ink-sub);
+}
+.note-small p { margin-bottom: var(--sp-3); }
+
+/* ファーストビューの主コピー（写真は使わない。文字と余白だけで組む） */
+/* ファーストビューの地。和紙の上に、斜めから光が差しているような明暗をつける。
+   彩度は足していない。紙と墨の中だけで奥行きを作る。
+
+   最後の色を var(--paper) ぴったりで終わらせているのが要点。
+   ここが紙の色と1段でもずれると、ヒーローの下端に横線が出る。
+   （最初 #F2EFE8 で終わらせたら、次のセクションとの境目がはっきり見えた）
+
+   ここだけに掛ける。全ページに敷くと、明暗が常にあるぶん
+   読ませる章の落ち着きが削がれる。 */
+.hero {
+  background-image:
+    var(--washi),
+    radial-gradient(150% 60% at 10% 74%, #E2DCD0 0%, rgba(226, 220, 208, 0) 64%),
+    linear-gradient(180deg, #FDFDFB 0%, #F8F6F2 44%, var(--paper) 100%);
+  background-repeat: repeat, no-repeat, no-repeat;
+  background-size: var(--washi-size), cover, cover;
+  background-blend-mode: multiply, normal, normal;
+}
+
+.hero__copy {
+  font-family: var(--font-mincho);
+  font-size: var(--fs-hero);
+  font-weight: 400;
+  line-height: 1.75;
+  letter-spacing: 0.06em;
+  margin: 0 0 var(--sp-7);
+}
+
+/* 最重要の一文を黒い面に載せる。紙 → 黒 → 紙で切り替わり、その一文だけが浮く。
+   黒い面は1ページに2回まで（もう1枚は最終CTAの .section--ink）。
+   免責・FAQ・建物の説明のような長文には使わない。
+   短く大きい文字のときだけ成立する装置で、増やすほど効果が落ちる。 */
+.quote-plane {
+  background: var(--ink);
+  padding-block: var(--sp-10);
+  margin-block: var(--sp-10);
+}
+.quote-plane .pull-quote {
+  color: var(--on-ink);
+  margin-block: 0;
+}
+
+/* 一文だけを独立させて見せる（最重要の一文） */
+.pull-quote {
+  font-family: var(--font-mincho);
+  font-size: var(--fs-3xl);
+  font-weight: 400;
+  line-height: 1.8;
+  letter-spacing: 0.06em;
+  text-align: center;
+  margin: var(--sp-10) auto;
+  /* 改行位置はHTML側の <br> で決める。ここは自動折り返しを起こさない幅にする */
+  max-width: 20em;
+  padding-inline: var(--pad-x);
+}
+
+/* 目立たせたい一文（帯や色ではなく、字面と余白で） */
+.standout {
+  font-family: var(--font-mincho);
+  font-size: var(--fs-l);
+  font-weight: 700;
+  line-height: var(--lh-head);
+  letter-spacing: var(--ls-head);
+  color: var(--ink);
+  margin: var(--sp-6) 0;
+}
+
+
+/* ---------------------------------------------------------------------------
+   5. 記事本文コンテナ（下層ページ用）
+--------------------------------------------------------------------------- */
+.prose > * + * { margin-top: var(--sp-5); }
+
+.prose h2 {
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  margin-top: var(--sp-9);
+  margin-bottom: var(--sp-4);
+}
+.prose h2:first-child { margin-top: 0; }
+
+.prose h3 {
+  font-size: var(--fs-l);
+  font-weight: 700;
+  margin-top: var(--sp-7);
+  margin-bottom: var(--sp-3);
+}
+
+.prose p { margin: 0 0 1.5em; }
+.prose p:last-child { margin-bottom: 0; }
+.prose ul, .prose ol { margin: 0 0 var(--sp-6); }
+.prose strong { font-weight: 700; }
+
+/* ---------------------------------------------------------------------------
+   6. リスト
+--------------------------------------------------------------------------- */
+.list-dot { margin: 0 0 var(--sp-6); }
+.list-dot > li {
+  position: relative;
+  padding-left: 1.1em;
+  margin-bottom: var(--sp-3);
+  line-height: var(--lh-list);
+}
+.list-dot > li:last-child { margin-bottom: 0; }
+.list-dot > li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.85em;
+  width: 5px;
+  height: 1px;
+  background: var(--rule-strong);
+}
+/* 1行だけ質を変えて強調するとき */
+.list-dot__item--emph {
+  font-family: var(--font-mincho);
+  font-weight: 700;
+  font-size: var(--fs-l);
+  line-height: var(--lh-head);
+  color: var(--ink);
+  margin-top: var(--sp-5) !important;
+}
+.list-dot__item--emph::before { top: 0.8em; }
+
+/* 資格名に、学校名や認定団体などの長い補足が付くとき。
+   括弧で1行に押し込まず、下に小さく二段目として置く */
+.list-dot__note {
+  display: block;
+  font-size: var(--fs-s);
+  line-height: var(--lh-tight);
+  color: var(--ink-sub);
+  margin-top: var(--sp-1);
+}
+
+.list-plain > li { margin-bottom: var(--sp-3); line-height: var(--lh-list); }
+.list-plain > li:last-child { margin-bottom: 0; }
+
+/* 番号付きの手順。数字は明朝、罫の上に置いて「順序」を見せる */
+.steps { margin: 0; }
+.step {
+  position: relative;
+  padding-top: var(--sp-5);
+  border-top: 1px solid var(--rule);
+  margin-bottom: var(--sp-7);
+}
+.step:last-child { margin-bottom: 0; }
+.step__num {
+  display: block;
+  font-family: var(--font-mincho);
+  font-size: var(--fs-l);
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0.16em;
+  color: var(--ink-sub);
+  margin-bottom: var(--sp-3);
+}
+.step__title {
+  font-family: var(--font-mincho);
+  font-size: var(--fs-l);
+  font-weight: 700;
+  letter-spacing: var(--ls-head);
+  line-height: var(--lh-head);
+  margin: 0 0 var(--sp-3);
+}
+.step__body { margin: 0; }
+.step__body p:last-child { margin-bottom: 0; }
+.step__figure { margin-top: var(--sp-5); }
+
+@media (min-width: 768px) {
+  .step {
+    display: grid;
+    grid-template-columns: 4.5em 1fr;
+    column-gap: var(--sp-5);
+  }
+  .step__num { grid-column: 1; margin-bottom: 0; padding-top: 0.35em; }
+  .step__title, .step__body, .step__figure { grid-column: 2; }
+}
+
+/* ---------------------------------------------------------------------------
+   7. 囲み（注意書き・カード・定義リスト）
+   枠線＋角丸の汎用ボックスにしない。紙の面として見せる。
+--------------------------------------------------------------------------- */
+
+/* 【必ずお読みください】等。小さく隠さず、誠実さの証明として見せる */
+.notice {
+  background: var(--paper-deep);
+  padding: var(--sp-6);
+  margin: var(--sp-6) 0;
+  font-size: var(--fs-ms);
+  line-height: var(--lh-tight);
+}
+.section--plane .notice { background-color: var(--paper); }
+/* 紙を塗り直している小さな面にも、同じ質感を乗せる */
+.notice,
+.tbd,
+.section--plane .notice,
+.section--plane .tbd {
+  background-image: var(--washi);
+  background-repeat: repeat;
+  background-size: var(--washi-size);
+  background-blend-mode: multiply;
+}
+.section--ink .notice { background: rgba(245, 242, 236, 0.07); }
+.notice__title {
+  font-family: var(--font-mincho);
+  font-size: var(--fs-m);
+  font-weight: 700;
+  letter-spacing: var(--ls-head);
+  line-height: var(--lh-head);
+  margin: 0 0 var(--sp-3);
+}
+.notice p { margin-bottom: var(--sp-4); }
+.notice p:last-child, .notice > *:last-child { margin-bottom: 0; }
+.notice .list-dot { margin-bottom: 0; }
+.notice .list-dot > li { line-height: var(--lh-tight); }
+
+/* 情報の囲み（注意喚起ではないもの）。上下の罫だけで囲う */
+.card {
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  padding: var(--sp-5) 0;
+  margin: var(--sp-6) 0;
+}
+
+/* 項目名＋内容（特定商取引法の表記など）。実務情報なので行間を詰める */
+.info-dl {
+  margin: 0 0 var(--sp-6);
+  font-size: var(--fs-ms);
+  line-height: var(--lh-tight);
+}
+.info-dl > div {
+  padding: var(--sp-4) 0;
+  border-bottom: 1px solid var(--rule);
+}
+.info-dl > div:first-child { border-top: 1px solid var(--rule); }
+.info-dl dt {
+  font-family: var(--font-mincho);
+  font-weight: 700;
+  letter-spacing: var(--ls-head);
+  line-height: var(--lh-head);
+  margin-bottom: var(--sp-2);
+  color: var(--ink);
+}
+.info-dl dd { margin: 0; }
+
+@media (min-width: 768px) {
+  .info-dl > div {
+    display: grid;
+    grid-template-columns: 12em 1fr;
+    gap: var(--sp-5);
+    align-items: baseline;
+  }
+  .info-dl dt { margin-bottom: 0; }
+}
+
+/* 依頼者が後で記入する箇所 */
+.tbd {
+  color: var(--ink-sub);
+  background: var(--paper-deep);
+  padding: 0.1em 0.5em;
+}
+.section--plane .tbd { background: var(--paper); }
+
+/* ---------------------------------------------------------------------------
+   8. 表組み
+--------------------------------------------------------------------------- */
+.table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: var(--sp-6) 0;
+}
+.table {
+  width: 100%;
+  min-width: 340px;
+  border-collapse: collapse;
+  font-size: var(--fs-ms);
+  line-height: var(--lh-tight);
+}
+.table th, .table td {
+  text-align: left;
+  padding: var(--sp-4) var(--sp-4) var(--sp-4) 0;
+  border-bottom: 1px solid var(--rule);
+  vertical-align: top;
+}
+.table thead th {
+  font-family: var(--font-mincho);
+  font-weight: 700;
+  letter-spacing: var(--ls-head);
+  border-bottom: 1px solid var(--rule-strong);
+  white-space: nowrap;
+}
+.table tbody th {
+  font-weight: 400;
+  white-space: nowrap;
+  color: var(--ink);
+}
+
+/* ---------------------------------------------------------------------------
+   9. 写真プレースホルダ
+   ---------------------------------------------------------------------------
+   差し替え手順:
+     1. images/ に画像を置く（例: images/face.jpg）
+     2. <div class="ph ph--portrait"> の中の <span class="ph__label">…</span> を
+        <img class="ph__img" src="images/face.jpg" alt="…"> に置き換えるだけ
+   ※ フィルター・CSS加工は一切かけない。顔写真は正方形か縦長（円形にしない）
+--------------------------------------------------------------------------- */
+.ph {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--paper-sink);
+  overflow: hidden;
+  aspect-ratio: 4 / 3;
+}
+.section--plane .ph { background: var(--paper-sink); }
+/* 用途名と、撮影内容の指示。写真が入るまでの間、枠の中に何を撮るかを書いておく。
+   撮影後は .ph__label ごと <img class="ph__img"> に差し替える */
+.ph__label {
+  display: block;
+  max-width: 30em;
+  padding: var(--sp-4);
+  text-align: center;
+  color: var(--ink-faint);
+}
+.ph__name {
+  display: block;
+  font-family: var(--font-mincho);
+  font-size: var(--fs-ms);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  line-height: var(--lh-label);
+  color: var(--ink-sub);
+  margin-bottom: var(--sp-2);
+}
+.ph__brief {
+  display: block;
+  font-size: var(--fs-xs);
+  letter-spacing: 0.04em;
+  line-height: 1.75;
+  /* 撮影する人が読むための文字なので、枠の地色の上で読める濃さにする */
+  color: var(--ink-sub);
+}
+.ph__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  filter: none;
+}
+.ph--portrait { aspect-ratio: 3 / 4; }
+.ph--square   { aspect-ratio: 1 / 1; }
+.ph--photo43  { aspect-ratio: 4 / 3; }
+.ph--wide     { aspect-ratio: 16 / 9; }
+
+.ph-face {
+  width: min(240px, 58%);
+  margin: 0 0 var(--sp-6);
+}
+
+/* 国家資格の保有を示すタグ。氏名の直前に置く。
+   資格は「行為」ではなく「肩書・信頼シグナル」として見せるための要素。
+   色は足さない（彩度を持つのはCTAだけ）。墨の細枠と字面だけで示す */
+.credential {
+  display: inline-block;
+  font-family: var(--font-mincho);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  line-height: var(--lh-label);
+  color: var(--ink);
+  border: 1px solid var(--ink);
+  padding: var(--sp-2) var(--sp-4);
+  margin: 0 0 var(--sp-4);
+}
+
+
+.ph-grid {
+  display: grid;
+  gap: var(--sp-2);
+  margin: 0 0 var(--sp-6);
+}
+.ph-grid--2 { grid-template-columns: repeat(2, 1fr); }
+@media (min-width: 768px) {
+  .ph-grid { gap: var(--sp-3); }
+}
+
+/* ---------------------------------------------------------------------------
+   9-2. 進め方の図（ファーストビューの核）
+   ---------------------------------------------------------------------------
+   「見る → 見立てる → 行う → もう一度見る」という順序そのものが商品なので、
+   ここでだけ順序を示す図を使う。番号は振らない（順序は線が示している）。
+   目盛りのような細い罫と縦のティックだけで組み、色・矢印・アイコンは使わない。
+   アニメーションもつけない。
+--------------------------------------------------------------------------- */
+.flow {
+  position: relative;
+  margin: var(--sp-7) 0;
+  padding-top: var(--sp-5);
+}
+/* 工程を貫く1本の罫 */
+.flow::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1px;
+  height: 100%;
+  background: var(--rule-strong);
+}
+.flow__step {
+  position: relative;
+  padding-left: var(--sp-5);
+  padding-bottom: var(--sp-5);
+}
+.flow__step:last-child { padding-bottom: 0; }
+/* 罫を横切るティック（目盛り） */
+.flow__step::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.7em;
+  width: var(--sp-3);
+  height: 1px;
+  background: var(--ink);
+}
+.flow__act {
+  display: block;
+  font-family: var(--font-mincho);
+  font-size: var(--fs-l);
+  font-weight: 700;
+  letter-spacing: var(--ls-head);
+  line-height: var(--lh-head);
+  color: var(--ink);
+}
+/* 臨床で使う言い方を添える。読ませるためではなく、拠って立つものを示すため */
+.flow__term {
+  display: block;
+  font-size: var(--fs-xs);
+  letter-spacing: 0.16em;
+  line-height: var(--lh-label);
+  color: var(--ink-sub);
+  margin-top: var(--sp-1);
+}
+
+@media (min-width: 768px) {
+  .flow {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--sp-5);
+    padding-top: var(--sp-5);
+  }
+  .flow::before {
+    left: 0;
+    right: 0;
+    top: 0;
+    width: auto;
+    height: 1px;
+  }
+  .flow__step {
+    padding-left: 0;
+    padding-top: var(--sp-4);
+    padding-bottom: 0;
+  }
+  .flow__step::before {
+    top: calc(var(--sp-5) * -1);
+    left: 0;
+    width: 1px;
+    height: var(--sp-3);
+  }
+}
+
+/* 図が何を意味するかを言う一文。図の直後に置く */
+.flow-note {
+  font-family: var(--font-mincho);
+  font-size: var(--fs-l);
+  font-weight: 700;
+  line-height: var(--lh-head);
+  letter-spacing: var(--ls-head);
+  color: var(--ink);
+  margin: 0 0 var(--sp-6);
+}
+
+/* ---------------------------------------------------------------------------
+   10. 料金表示（価格を主表示、時間は補足。並列にしない）
+--------------------------------------------------------------------------- */
+.price { margin: 0 0 var(--sp-7); }
+.price__name {
+  font-family: var(--font-mincho);
+  font-size: var(--fs-ms);
+  font-weight: 700;
+  letter-spacing: var(--ls-head);
+  margin: 0 0 var(--sp-3);
+}
+.price__amount {
+  font-family: var(--font-mincho);
+  font-size: var(--fs-4xl);
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+  color: var(--ink);
+  margin: 0;
+}
+.price__amount .price__unit,
+.price__amount .price__times {
+  font-size: 0.34em;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+}
+.price__amount .price__unit  { margin-left: 0.4em; }
+.price__amount .price__times { margin-right: 0.5em; }
+/* ヒーローに置く価格。料金セクション（.price）より一段小さく組む。
+   ここは「合うかどうかを早く判断してもらう」ための表示で、価格の主表示ではない。
+   時間は「ご入室からご退室まで60〜90分程度」と書く。
+   実際に身体を見る時間はその日の状態で変わるので、
+   「60分の施術」を約束したことにしない（料金セクションの本文と揃える） */
+.hero__price {
+  margin: 0 0 var(--sp-6);
+  line-height: var(--lh-tight);
+}
+.hero__price-name {
+  display: block;
+  font-family: var(--font-mincho);
+  font-size: var(--fs-ms);
+  font-weight: 700;
+  letter-spacing: var(--ls-head);
+  color: var(--ink);
+}
+.hero__price-amt {
+  display: inline-block;
+  margin-top: var(--sp-2);
+  font-family: var(--font-mincho);
+  font-size: var(--fs-2xl);
+  letter-spacing: 0.01em;
+  color: var(--ink);
+}
+.hero__price-unit { font-size: var(--fs-ms); letter-spacing: 0.05em; }
+.hero__price-slot {
+  display: block;
+  margin-top: var(--sp-2);
+  font-size: var(--fs-s);
+  letter-spacing: 0.06em;
+  color: var(--ink-sub);
+}
+
+.price__slot {
+  font-size: var(--fs-s);
+  color: var(--ink-sub);
+  letter-spacing: 0.06em;
+  line-height: var(--lh-tight);
+  margin: var(--sp-4) 0 0;
+}
+
+/* ---------------------------------------------------------------------------
+   11. FAQ（details / summary）
+--------------------------------------------------------------------------- */
+.faq { border-top: 1px solid var(--rule); }
+.faq__item { border-bottom: 1px solid var(--rule); }
+
+.faq__q {
+  display: block;
+  cursor: pointer;
+  list-style: none;
+  padding: var(--sp-5) var(--sp-6) var(--sp-5) 0;
+  position: relative;
+  font-family: var(--font-mincho);
+  font-size: var(--fs-m);
+  font-weight: 700;
+  letter-spacing: var(--ls-head);
+  line-height: var(--lh-head);
+  color: var(--ink);
+}
+.faq__q::-webkit-details-marker { display: none; }
+/* 開閉の記号は細い線のみ。アイコンは使わない */
+.faq__q::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: calc(var(--sp-5) + 0.55em);
+  width: 12px;
+  height: 12px;
+  background:
+    linear-gradient(var(--ink-sub), var(--ink-sub)) center / 12px 1px no-repeat,
+    linear-gradient(var(--ink-sub), var(--ink-sub)) center / 1px 12px no-repeat;
+  transition: transform 0.25s var(--ease);
+}
+.faq__item[open] .faq__q::after {
+  background: linear-gradient(var(--ink-sub), var(--ink-sub)) center / 12px 1px no-repeat;
+}
+
+.faq__a {
+  padding: 0 0 var(--sp-5);
+  margin: 0;
+  font-size: var(--fs-ms);
+  line-height: var(--lh-list);
+  color: var(--ink-body);
+}
+.faq__a p { margin-bottom: var(--sp-3); }
+.faq__a p:last-child { margin-bottom: 0; }
+
+/* ---------------------------------------------------------------------------
+   12. CTA
+   サイト内で唯一、彩度のある色を持つ場所。ここ以外に緑を使わない。
+--------------------------------------------------------------------------- */
+.cta-block {
+  margin: var(--sp-8) 0 0;
+}
+.cta-block--left { text-align: left; }
+.cta-block__note {
+  margin-top: var(--sp-4);
+  font-size: var(--fs-s);
+  line-height: var(--lh-tight);
+  color: var(--ink-sub);
+}
+
+.btn-line {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 58px;
+  padding: 0.8em 2.4em;
+  background: var(--line);
+  border-radius: var(--radius-btn);
+  color: #FFFFFF;
+  font-family: var(--font-gothic);
+  font-size: var(--fs-m);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-decoration: none;
+  transition: background-color 0.2s var(--ease), transform 0.15s var(--ease);
+}
+.btn-line:hover,
+.btn-line:focus-visible {
+  background: var(--line-deep);
+  color: #FFFFFF;
+  text-decoration: none;
+}
+.btn-line:active { transform: translateY(1px); }
+.btn-line--block { display: flex; width: 100%; }
+
+/* 下層ページへの導線。記号は足さず、罫と字面だけで示す */
+.link-more {
+  display: inline-block;
+  font-family: var(--font-mincho);
+  font-size: var(--fs-ms);
+  font-weight: 700;
+  letter-spacing: var(--ls-head);
+  color: var(--ink);
+  text-decoration: none;
+  border-bottom: 1px solid var(--rule-strong);
+  padding-bottom: var(--sp-1);
+}
+.link-more:hover { border-bottom-color: var(--ink); }
+
+/* スマホ画面下部の固定CTA */
+.fixed-cta {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 60;
+  /* 高さは 4 + ボタン56 + 4 = 64px。塗りは減らさず面積だけを詰める。
+     輪郭ボタンにすると背景とのコントラストが落ち、押せることが伝わりにくい */
+  padding: var(--sp-1) var(--sp-4) calc(var(--sp-1) + env(safe-area-inset-bottom, 0px));
+  background: rgba(250, 249, 247, 0.96);
+  border-top: 1px solid var(--rule);
+  transition: transform 0.28s var(--ease), opacity 0.28s var(--ease);
+}
+.fixed-cta .btn-line { min-height: 52px; }
+.fixed-cta.is-hidden {
+  transform: translateY(110%);
+  opacity: 0;
+  pointer-events: none;
+}
+@media (min-width: 900px) {
+  .fixed-cta { display: none; }
+}
+@media (max-width: 899px) {
+  body { padding-bottom: 68px; }  /* 固定CTA 64px + 余白 */
+}
+
+/* ---------------------------------------------------------------------------
+   13. ヘッダー / グローバルナビ
+--------------------------------------------------------------------------- */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(250, 249, 247, 0.95);
+  border-bottom: 1px solid var(--rule);
+  backdrop-filter: saturate(115%) blur(6px);
+}
+.site-header__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  min-height: 62px;
+  max-width: var(--measure-wide);
+  margin-inline: auto;
+  padding-inline: var(--pad-x);
+}
+@media (min-width: 768px) {
+  .site-header__inner { padding-inline: var(--sp-6); min-height: 72px; }
+}
+
+.brand {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  text-decoration: none;
+  color: var(--ink);
+  line-height: var(--lh-label);
+}
+.brand__name {
+  font-family: var(--font-mincho);
+  font-size: var(--fs-l);
+  font-weight: 400;
+  letter-spacing: 0.1em;
+}
+.brand__sub {
+  font-size: var(--fs-xs);
+  letter-spacing: 0.14em;
+  color: var(--ink-sub);
+}
+
+.gnav__list {
+  display: flex;
+  gap: clamp(var(--sp-3), 1.8vw, var(--sp-6));
+  align-items: center;
+}
+.gnav__link {
+  font-size: var(--fs-s);
+  letter-spacing: 0.05em;
+  color: var(--ink-body);
+  text-decoration: none;
+  padding: var(--sp-1) 0;
+  border-bottom: 1px solid transparent;
+  white-space: nowrap;
+}
+.gnav__link:hover { border-bottom-color: var(--rule-strong); }
+.gnav__link.is-current {
+  color: var(--ink);
+  border-bottom-color: var(--ink);
+}
+
+/* ハンバーガー（線3本のみ。アイコンフォントは使わない） */
+.nav-toggle {
+  display: none;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  position: relative;
+  margin-right: -8px;
+}
+.nav-toggle__bar,
+.nav-toggle__bar::before,
+.nav-toggle__bar::after {
+  position: absolute;
+  left: 11px;
+  width: 22px;
+  height: 1px;
+  background: var(--ink);
+  transition: transform 0.25s var(--ease), opacity 0.2s var(--ease);
+}
+.nav-toggle__bar { top: 21px; }
+.nav-toggle__bar::before { content: ""; left: 0; top: -7px; }
+.nav-toggle__bar::after  { content: ""; left: 0; top: 7px; }
+.site-header.is-open .nav-toggle__bar { background: transparent; }
+.site-header.is-open .nav-toggle__bar::before { transform: translateY(7px) rotate(45deg); }
+.site-header.is-open .nav-toggle__bar::after  { transform: translateY(-7px) rotate(-45deg); }
+
+@media (max-width: 767px) {
+  .nav-toggle { display: block; }
+  .gnav {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 100%;
+    background: var(--paper);
+    border-bottom: 1px solid var(--rule);
+    display: none;
+  }
+  .site-header.is-open .gnav { display: block; }
+  .gnav__list {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    padding: var(--sp-1) var(--pad-x) var(--sp-4);
+  }
+  .gnav__link {
+    display: block;
+    padding: var(--sp-4) 0;
+    border-bottom: 1px solid var(--rule);
+    font-size: var(--fs-ms);
+  }
+  .gnav__link:hover { border-bottom-color: var(--rule); }
+  .gnav__link.is-current { border-bottom-color: var(--rule); }
+}
+
+/* ---------------------------------------------------------------------------
+   14. フッター
+--------------------------------------------------------------------------- */
+.site-footer {
+  background: var(--paper-deep);
+  padding-block: var(--sp-8);
+  font-size: var(--fs-s);
+  line-height: var(--lh-tight);
+}
+.site-footer__inner {
+  max-width: var(--measure);
+  margin-inline: auto;
+  padding-inline: var(--pad-x);
+}
+@media (min-width: 768px) {
+  .site-footer__inner { padding-inline: var(--sp-6); }
+}
+.site-footer__brand {
+  font-family: var(--font-mincho);
+  font-size: var(--fs-l);
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  color: var(--ink);
+  margin-bottom: var(--sp-2);
+}
+.site-footer__addr {
+  color: var(--ink-sub);
+  font-style: normal;
+  margin-bottom: var(--sp-6);
+}
+.footer-nav__list,
+.footer-links__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3) var(--sp-5);
+  margin-bottom: var(--sp-5);
+}
+.footer-nav__list a,
+.footer-links__list a {
+  color: var(--ink-body);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  letter-spacing: 0.04em;
+}
+.footer-links__list a { font-size: var(--fs-xs); color: var(--ink-sub); }
+.footer-nav__list a:hover,
+.footer-links__list a:hover { border-bottom-color: var(--rule-strong); }
+
+.site-footer__note {
+  font-size: var(--fs-xs);
+  line-height: var(--lh-tight);
+  color: var(--ink-sub);
+  border-top: 1px solid var(--rule-strong);
+  padding-top: var(--sp-5);
+  margin-top: var(--sp-2);
+}
+.site-footer__copy {
+  font-family: var(--font-mincho);
+  font-size: var(--fs-xs);
+  letter-spacing: 0.1em;
+  color: var(--ink-sub);
+  margin-top: var(--sp-4);
+}
+
+/* ---------------------------------------------------------------------------
+   15. スクロールに合わせて現れる演出
+   ---------------------------------------------------------------------------
+   .reveal を付けた範囲の「中身ひとつずつ」が対象。
+   範囲ごとにまとめて出すのではなく、画面に入った要素から順に出す。
+   スクロールの速さがそのまま出方になるので、演出が押し付けがましくならない。
+
+   .reveal-ready と .is-visible を付けるのはJS。
+   JSが動かない環境では最初から表示されたままになる（内容は必ず読める）。
+
+   動きは3種類だけ。
+     文字・囲み … にじみが取れながら、下から少し上がってくる
+     写真       … 下から紙をめくるように現れ、中の画像はわずかに縮む
+     罫         … 左から引かれる
+   拡大・回転・視差（パララックス）は使わない。
+   落ち着いた信頼を売る事業なので、動きが目に付いた瞬間に安く見える。
+--------------------------------------------------------------------------- */
+.reveal-ready {
+  opacity: 0;
+  transform: translateY(var(--reveal-rise));
+  filter: blur(var(--reveal-blur));
+  transition:
+    opacity   var(--dur-reveal-fade) var(--ease-reveal) var(--reveal-delay, 0ms),
+    filter    var(--dur-reveal-fade) var(--ease-reveal) var(--reveal-delay, 0ms),
+    transform var(--dur-reveal)      var(--ease-reveal) var(--reveal-delay, 0ms);
+}
+.reveal-ready.is-visible {
+  opacity: 1;
+  transform: none;
+  filter: none;
+}
+
+/* 写真。地と同じ色の「覆い」を1枚かぶせておき、それを上へ引き上げて出す。
+   下から順に画が現れる。
+
+   clip-path で隠す方が短く書けるが、それだと写真そのものが
+   「画面に入っていない」と判定されて、いつまでも出てこない。
+   だから覆いをかぶせる方式にしている。
+
+   .ph は overflow: hidden なので、中身を少し大きく置いてから等倍に戻すと、
+   めくりに合わせて画が落ち着いていく */
+.reveal-ready.ph {
+  opacity: 1;
+  transform: none;
+  filter: none;
+}
+.reveal-ready.ph::after,
+.reveal-ready .ph::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--curtain);
+  transition: transform var(--dur-reveal-photo) var(--ease-reveal) var(--reveal-delay, 0ms);
+}
+.reveal-ready.ph.is-visible::after,
+.reveal-ready.is-visible .ph::after {
+  transform: translateY(-100%);
+}
+
+.reveal-ready.ph .ph__img,
+.reveal-ready.ph .ph__label,
+.reveal-ready .ph .ph__img,
+.reveal-ready .ph .ph__label {
+  transform: scale(1.05);
+  transition: transform calc(var(--dur-reveal-photo) + 0.25s) var(--ease-reveal) var(--reveal-delay, 0ms);
+}
+.reveal-ready.ph.is-visible .ph__img,
+.reveal-ready.ph.is-visible .ph__label,
+.reveal-ready.is-visible .ph .ph__img,
+.reveal-ready.is-visible .ph .ph__label {
+  transform: none;
+}
+
+/* セッションの流れのように、文字の箱の中に写真が入っている場合は、
+   文字が収まってから写真をめくる。同時だと動きが重なって騒がしい */
+.reveal-ready:not(.ph) .ph::after,
+.reveal-ready:not(.ph) .ph .ph__img,
+.reveal-ready:not(.ph) .ph .ph__label {
+  transition-delay: calc(var(--reveal-delay, 0ms) + 140ms);
+}
+
+/* 罫は左から引く */
+.reveal-ready.rule {
+  opacity: 1;
+  filter: none;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform var(--dur-reveal) var(--ease-reveal) var(--reveal-delay, 0ms);
+}
+.reveal-ready.rule.is-visible {
+  transform: none;
+}
+
+/* ---------------------------------------------------------------------------
+   16. ユーティリティ
+--------------------------------------------------------------------------- */
+.u-mt-0 { margin-top: 0 !important; }
+.u-mt-m { margin-top: var(--sp-6) !important; }
+.u-mt-l { margin-top: var(--sp-8) !important; }
+.u-mb-0 { margin-bottom: 0 !important; }
+.u-mb-s { margin-bottom: var(--sp-4) !important; }
+.u-mb-m { margin-bottom: var(--sp-6) !important; }
+.u-mb-l { margin-bottom: var(--sp-8) !important; }
+
+/* 幅を限って効かせる改行。
+   本文には使わない（上の折り返しの項を参照）。
+   短い表示コピーで、狙った位置で切りたいときだけ使う。 */
+.u-br-sp { display: none; }          /* スマホでだけ改行する */
+@media (max-width: 767px) {
+  .u-br-sp { display: inline; }
+}
+
+.u-br-pc { display: none; }          /* パソコンでだけ改行する */
+@media (min-width: 768px) {
+  .u-br-pc { display: inline; }
+}
+
+/* この中では折り返さない。
+   「｜」区切りの肩書きや「Level Ⅰ・Ⅱ・Ⅲ」のような、
+   途中で切れると読みが崩れる短い語のかたまりにだけ使う。
+   長い文に付けると画面からはみ出すので、必ず画面幅より短いものに限る。
+
+   360px 未満では解除する。iPhone SE 第1世代のような幅では、
+   折り返し禁止のままだと横スクロールが出るため。
+   語が割れることより、画面からはみ出すことの方が悪い */
+@media (min-width: 360px) {
+  .u-nw { white-space: nowrap; }
+}
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
+  background: var(--ink);
+  color: #FFFFFF;
+  padding: var(--sp-3) var(--sp-5);
+  text-decoration: none;
+  font-size: var(--fs-ms);
+}
+.skip-link:focus { left: 0; color: #FFFFFF; }
+
+/* ---------------------------------------------------------------------------
+   17. 動きを減らす設定・印刷
+--------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .reveal-ready,
+  .reveal-ready .ph__img,
+  .reveal-ready .ph__label,
+  .reveal-ready .ph .ph__img,
+  .reveal-ready .ph .ph__label {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+  .reveal-ready.ph::after,
+  .reveal-ready .ph::after { display: none; }
+}
+
+@media print {
+  .site-header, .fixed-cta { display: none !important; }
+  /* 紙に印刷するので、紙の質感は要らない */
+  body, .hero, .section--plane, .notice, .tbd { background-image: none !important; }
+  /* スクロールしていない状態で印刷しても、内容が欠けないようにする */
+  .reveal-ready,
+  .reveal-ready .ph__img,
+  .reveal-ready .ph__label,
+  .reveal-ready .ph .ph__img,
+  .reveal-ready .ph .ph__label {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+  }
+  .reveal-ready.ph::after,
+  .reveal-ready .ph::after { display: none !important; }
+  body { padding-bottom: 0; background: #FFFFFF; }
+  .section, .section--plane, .section--ink {
+    padding-block: var(--sp-5);
+    background: #FFFFFF !important;
+    color: #000000;
+  }
+  .section--ink h1, .section--ink h2, .section--ink h3 { color: #000000; }
+  .faq__item > .faq__a { display: block !important; }
+}

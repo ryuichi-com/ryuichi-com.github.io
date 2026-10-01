@@ -1,0 +1,3 @@
+# 書き出したキャンバス（エディタ同梱で約2.5MB）は追跡しない。
+# 下の .dc.html と canvas.json から seed-canvas.mjs でいつでも作り直せる。
+physio-ryu-tokyo-directions.html
