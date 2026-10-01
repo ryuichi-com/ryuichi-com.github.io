@@ -1144,8 +1144,8 @@ strong, b { font-weight: 700; }
 }
 /* 文字ロゴの「TOKYO」。サイト内では墨1色版を使う（彩度のある色はLINEボタンだけ、の規律を守るため） */
 .brand__city {
-  font-size: 0.39em;
-  letter-spacing: 0.32em;
+  font-size: 0.72em;
+  letter-spacing: 0.2em;
 }
 .brand__sub {
   font-size: var(--fs-xs);
